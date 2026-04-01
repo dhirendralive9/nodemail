@@ -1,5 +1,5 @@
-// Select all checkbox
 document.addEventListener("DOMContentLoaded", () => {
+  // Select all checkbox
   const selectAll = document.getElementById("selectAll");
   if (selectAll) {
     selectAll.addEventListener("change", (e) => {
@@ -9,3 +9,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+// Sidebar toggle for mobile
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("sidebarOverlay").classList.toggle("open");
+}

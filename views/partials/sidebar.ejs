@@ -1,56 +1,69 @@
-<aside class="sidebar">
-  <div class="sidebar-brand">NodeMail <span>v1</span></div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">NODEMAIL <span>v1</span></div>
 
-  <a href="/compose" class="compose-btn">&#9998; Compose</a>
+  <a href="/compose" class="compose-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg>
+    Compose
+  </a>
 
   <a href="/?folder=inbox" class="nav-item <%= typeof folder !== 'undefined' && folder === 'inbox' ? 'active' : '' %>">
-    <span class="icon">&#128229;</span> Inbox
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+    Inbox
     <% if (sidebar.unread > 0) { %><span class="badge"><%= sidebar.unread %></span><% } %>
   </a>
   <a href="/?folder=starred" class="nav-item <%= typeof folder !== 'undefined' && folder === 'starred' ? 'active' : '' %>">
-    <span class="icon">&#11088;</span> Starred
-    <% if (sidebar.counts.starred > 0) { %><span class="badge" style="background:#eab308"><%= sidebar.counts.starred %></span><% } %>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    Starred
+    <% if (sidebar.counts.starred > 0) { %><span class="badge"><%= sidebar.counts.starred %></span><% } %>
   </a>
   <a href="/?folder=sent" class="nav-item <%= typeof folder !== 'undefined' && folder === 'sent' ? 'active' : '' %>">
-    <span class="icon">&#128228;</span> Sent
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
+    Sent
   </a>
   <a href="/?folder=drafts" class="nav-item <%= typeof folder !== 'undefined' && folder === 'drafts' ? 'active' : '' %>">
-    <span class="icon">&#128221;</span> Drafts
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 2H8.6c-.4 0-.8.2-1.1.5-.3.3-.5.7-.5 1.1v16.8c0 .4.2.8.5 1.1.3.3.7.5 1.1.5h10.8c.4 0 .8-.2 1.1-.5.3-.3.5-.7.5-1.1V7.5L15.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Drafts
   </a>
   <a href="/?folder=trash" class="nav-item <%= typeof folder !== 'undefined' && folder === 'trash' ? 'active' : '' %>">
-    <span class="icon">&#128465;</span> Trash
-    <% if (sidebar.counts.trash > 0) { %><span class="badge" style="background:var(--red)"><%= sidebar.counts.trash %></span><% } %>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+    Trash
+    <% if (sidebar.counts.trash > 0) { %><span class="badge"><%= sidebar.counts.trash %></span><% } %>
   </a>
 
   <% if (sidebar.customFolders && sidebar.customFolders.length > 0) { %>
     <div class="sidebar-section">Folders</div>
     <% sidebar.customFolders.forEach(function(cf) { %>
       <a href="/?folder=<%= cf._id %>" class="nav-item <%= typeof folder !== 'undefined' && folder === cf._id.toString() ? 'active' : '' %>">
-        <span class="icon" style="color:<%= cf.color %>">&#128193;</span> <%= cf.name %>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="<%= cf.color %>" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>
+        <%= cf.name %>
         <% if (sidebar.counts['custom_' + cf._id] > 0) { %><span class="badge"><%= sidebar.counts['custom_' + cf._id] %></span><% } %>
       </a>
     <% }); %>
   <% } %>
 
-  <div class="sidebar-section">New Folder</div>
+  <div class="sidebar-section">New folder</div>
   <form class="folder-form" method="POST" action="/folders/create">
-    <input type="text" name="name" placeholder="Folder name" required>
+    <input type="text" name="name" placeholder="Name" required>
     <button type="submit">+</button>
   </form>
 
-  <div class="sidebar-section">Settings</div>
+  <div class="sidebar-section">System</div>
   <a href="/domains" class="nav-item">
-    <span class="icon">&#127760;</span> Domains
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+    Domains
   </a>
   <a href="/mailboxes" class="nav-item">
-    <span class="icon">&#128234;</span> Mailboxes
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+    Mailboxes
   </a>
   <a href="/users" class="nav-item">
-    <span class="icon">&#128101;</span> Users
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Users
   </a>
 
   <div class="sidebar-bottom">
-    Logged in as <strong><%= session.userEmail %></strong><br>
+    <strong><%= session.userEmail %></strong><br>
     <a href="/logout">Sign out</a>
   </div>
 </aside>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
