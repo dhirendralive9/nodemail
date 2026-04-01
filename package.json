@@ -1,5 +1,5 @@
 {
-  "name": "nodemail",
+  "name": "email-sender",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,16 +10,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "ejs": "^5.0.1",
     "express": "^5.2.1",
-    "express-session": "^1.19.0",
-    "helmet": "^8.1.0",
-    "mailparser": "^3.9.6",
-    "mongoose": "^9.3.3",
-    "multer": "^2.1.1",
-    "nodemailer": "^8.0.4",
-    "smtp-server": "^3.18.3"
+    "nodemailer": "^8.0.4"
   }
 }

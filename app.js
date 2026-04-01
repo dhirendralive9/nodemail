@@ -1,75 +1,60 @@
 require("dotenv").config();
-const express  = require("express");
-const mongoose = require("mongoose");
-const session  = require("express-session");
-const helmet   = require("helmet");
-const path     = require("path");
-
-const User = require("./models/User");
+const express = require("express");
+const nodemailer = require("nodemailer");
+const path = require("path");
 
 const app = express();
-
-// ── Security ──
-app.use(helmet({ contentSecurityPolicy: false }));
-
-// ── Body parsing ──
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-// ── Static ──
-app.use(express.static(path.join(__dirname, "public")));
-
-// ── View engine ──
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.use(express.urlencoded({ extended: true }));
 
-// ── Sessions ──
-app.use(session({
-  secret: process.env.SESSION_SECRET || "nodemail-dev-secret",
-  resave: false,
-  saveUninitialized: false,
-  cookie: { maxAge: 7 * 24 * 60 * 60 * 1000 }, // 7 days
-}));
-
-// ── Routes ──
-app.use("/", require("./routes/auth"));
-app.use("/", require("./routes/emails"));
-app.use("/", require("./routes/settings"));
-app.use("/webhook", require("./routes/webhook"));
-
-// ── Boot ──
-async function start() {
-  // Connect MongoDB
-  await mongoose.connect(process.env.MONGO_URI);
-  console.log("MongoDB connected");
-
-  // Create default admin user if none exists
-  const userCount = await User.countDocuments();
-  if (userCount === 0 && process.env.ADMIN_EMAIL) {
-    await User.create({
-      email:    process.env.ADMIN_EMAIL,
-      password: process.env.ADMIN_PASS || "changeme123",
-      name:     "Admin",
-    });
-    console.log(`Default admin created: ${process.env.ADMIN_EMAIL}`);
-  }
-
-  // Start inbound SMTP server if configured
-  if (process.env.INBOUND_MODE === "smtp") {
-    const { startInboundSMTP } = require("./lib/inboundSmtp");
-    startInboundSMTP(Number(process.env.INBOUND_SMTP_PORT) || 25);
-  } else {
-    console.log("Inbound mode: webhook (POST to /webhook/inbound)");
-  }
-
-  // Start Express
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`NodeMail running → http://localhost:${PORT}`);
-  });
-}
-
-start().catch((err) => {
-  console.error("Startup error:", err);
-  process.exit(1);
+// ── Nodemailer transporter (Brevo SMTP) ──
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: false, // STARTTLS on 587
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+  },
 });
+
+// ── GET  / ── render the form ──
+app.get("/", (_req, res) => {
+  res.render("index", { result: null });
+});
+
+// ── POST /send ── send the email ──
+app.post("/send", async (req, res) => {
+  const { to, subject, body } = req.body;
+
+  if (!to || !subject || !body) {
+    return res.render("index", {
+      result: { ok: false, msg: "All fields are required." },
+    });
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"${process.env.FROM_NAME}" <${process.env.FROM_EMAIL}>`,
+      to,
+      subject,
+      text: body,
+      html: `<p>${body.replace(/\n/g, "<br>")}</p>`,
+    });
+
+    console.log("Message sent: %s", info.messageId);
+    res.render("index", {
+      result: { ok: true, msg: `Email sent! Message ID: ${info.messageId}` },
+    });
+  } catch (err) {
+    console.error("Send error:", err);
+    res.render("index", {
+      result: { ok: false, msg: `Failed: ${err.message}` },
+    });
+  }
+});
+
+// ── Start ──
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Email sender running → http://localhost:${PORT}`));
