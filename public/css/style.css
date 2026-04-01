@@ -269,8 +269,23 @@ a:hover { text-decoration: underline; }
 }
 .email-body iframe {
   width: 100%;
-  border: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   min-height: 300px;
+  background: #1a1b24;
+}
+.email-body .text-body {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--text);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin: 0;
+  word-break: break-word;
 }
 .email-actions {
   display: flex;

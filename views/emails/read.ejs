@@ -15,7 +15,7 @@
         <a href="/?folder=<%= email.folder %>" class="btn btn-sm">&larr; Back</a>
         <div class="toolbar-spacer"></div>
         <form method="POST" action="/email/<%= email._id %>/star" style="display:inline">
-          <button type="submit" class="btn btn-sm"><%= email.starred ? '★ Unstar' : '☆ Star' %></button>
+          <button type="submit" class="btn btn-sm"><%= email.starred ? '\u2605 Unstar' : '\u2606 Star' %></button>
         </form>
         <form method="POST" action="/email/<%= email._id %>/toggle-read" style="display:inline">
           <button type="submit" class="btn btn-sm"><%= email.read ? 'Mark Unread' : 'Mark Read' %></button>
@@ -26,9 +26,16 @@
         <h1><%= email.subject %></h1>
 
         <div class="email-meta">
-          <div><strong>From:</strong> <%= email.fromName ? email.fromName + ' &lt;' + email.from + '&gt;' : email.from %></div>
+          <div>
+            <strong>From:</strong>
+            <% if (email.fromName) { %>
+              <%= email.fromName %> &lt;<%= email.from %>&gt;
+            <% } else { %>
+              <%= email.from %>
+            <% } %>
+          </div>
           <div><strong>To:</strong> <%= email.to.join(', ') %></div>
-          <% if (email.cc && email.cc.length > 0) { %>
+          <% if (email.cc && email.cc.length > 0 && email.cc[0]) { %>
             <div><strong>CC:</strong> <%= email.cc.join(', ') %></div>
           <% } %>
           <div><strong>Date:</strong> <%= new Date(email.date).toLocaleString() %></div>
@@ -36,22 +43,30 @@
 
         <div class="email-body">
           <% if (email.htmlBody && email.htmlBody.trim()) { %>
+            <%
+              // Inject dark theme styles into the HTML body
+              var darkStyle = '<style>body{background:#1a1b24!important;color:#e4e4e7!important;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:12px;margin:0;line-height:1.6;}a{color:#818cf8!important;}img{max-width:100%;height:auto;}table{border-collapse:collapse;}td,th{border:1px solid #2a2b36;padding:6px 10px;}</style>';
+              var safeHtml = darkStyle + email.htmlBody;
+            %>
             <iframe
-              srcdoc="<%= email.htmlBody.replace(/\"/g, '&quot;') %>"
+              srcdoc="<%- safeHtml.replace(/"/g, '&quot;') %>"
               sandbox="allow-same-origin"
-              onload="this.style.height = this.contentWindow.document.body.scrollHeight + 20 + 'px'"
+              style="width:100%;border:1px solid var(--border);border-radius:var(--radius);min-height:300px;background:#1a1b24;"
+              onload="this.style.height = Math.max(300, this.contentWindow.document.body.scrollHeight + 40) + 'px'"
             ></iframe>
+          <% } else if (email.textBody && email.textBody.trim()) { %>
+            <pre class="text-body"><%= email.textBody %></pre>
           <% } else { %>
-            <pre style="white-space:pre-wrap; font-family:inherit;"><%= email.textBody %></pre>
+            <p style="color:var(--text-muted);font-style:italic;">No message content</p>
           <% } %>
         </div>
 
         <% if (email.attachments && email.attachments.length > 0) { %>
           <div class="att-list">
-            <h3>&#128206; Attachments (<%= email.attachments.length %>)</h3>
+            <h3>Attachments (<%= email.attachments.length %>)</h3>
             <% email.attachments.forEach(function(att) { %>
               <a href="/attachment/<%= email._id %>/<%= att._id %>" class="att-item">
-                &#128196; <%= att.filename %>
+                <%= att.filename %>
                 <span style="color:var(--text-muted); font-size:11px;">(<%= (att.size / 1024).toFixed(1) %> KB)</span>
               </a>
             <% }); %>
@@ -59,12 +74,11 @@
         <% } %>
 
         <div class="email-actions">
-          <a href="/reply/<%= email._id %>" class="btn btn-primary">&#8617; Reply</a>
-          <a href="/forward/<%= email._id %>" class="btn">&#8618; Forward</a>
+          <a href="/reply/<%= email._id %>" class="btn btn-primary">Reply</a>
+          <a href="/forward/<%= email._id %>" class="btn">Forward</a>
 
-          <!-- Move to folder -->
           <form method="POST" action="/email/<%= email._id %>/move" style="display:inline-flex;align-items:center;gap:4px;">
-            <select name="folder" style="padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;">
+            <select name="folder" class="form-select" style="width:auto;padding:8px 30px 8px 10px;font-size:13px;">
               <option value="inbox">Inbox</option>
               <option value="drafts">Drafts</option>
               <option value="trash">Trash</option>
@@ -78,7 +92,7 @@
           <form method="POST" action="/email/<%= email._id %>/delete" style="display:inline">
             <input type="hidden" name="returnFolder" value="<%= email.folder %>">
             <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('<%= email.folder === "trash" ? "Permanently delete?" : "Move to trash?" %>')">
-              &#128465; <%= email.folder === 'trash' ? 'Delete Forever' : 'Delete' %>
+              <%= email.folder === 'trash' ? 'Delete Forever' : 'Delete' %>
             </button>
           </form>
         </div>
