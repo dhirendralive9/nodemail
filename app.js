@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ override: true, processEnv: process.env });
 const express  = require("express");
 const mongoose = require("mongoose");
 const session  = require("express-session");
