@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — DNS Guide for <%= domain.domain %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <%- include('../partials/sidebar') %>
+
+    <div class="main">
+      <div class="toolbar">
+        <a href="/domains" class="btn btn-sm">&larr; Domains</a>
+        <span class="toolbar-title" style="margin-left:12px;">DNS Setup Guide</span>
+      </div>
+
+      <div class="settings-page">
+
+        <div class="guide-header">
+          <h1>&#128295; DNS Setup for <span class="accent"><%= domain.domain %></span></h1>
+          <p>Follow these steps to configure your domain to send and receive email through NodeMail.</p>
+        </div>
+
+        <!-- ─── STEP 1: A Record ─── -->
+        <div class="guide-step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h2>A Record — Point mail subdomain to your server</h2>
+            <p>Create an <strong>A record</strong> so <code>mail.<%= domain.domain %></code> resolves to your server's IP address.</p>
+
+            <div class="dns-record-box">
+              <table class="dns-table">
+                <thead>
+                  <tr><th>Type</th><th>Name / Host</th><th>Value / Points to</th><th>TTL</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>A</code></td>
+                    <td><code>mail</code></td>
+                    <td><code><%= serverIP || 'YOUR_SERVER_IP' %></code></td>
+                    <td><code>3600</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="guide-note">
+              <strong>&#128161; Tip:</strong> Replace <code><%= serverIP || 'YOUR_SERVER_IP' %></code> with your server's actual public IPv4 address.
+              <% if (serverIP) { %>
+                We detected <code><%= serverIP %></code> as your server IP.
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── STEP 2: MX Record ─── -->
+        <div class="guide-step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h2>MX Record — Route incoming email to your server</h2>
+            <p>Create an <strong>MX record</strong> that tells other mail servers where to deliver email for <code>@<%= domain.domain %></code>.</p>
+
+            <div class="dns-record-box">
+              <table class="dns-table">
+                <thead>
+                  <tr><th>Type</th><th>Name / Host</th><th>Value / Mail Server</th><th>Priority</th><th>TTL</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>MX</code></td>
+                    <td><code>@</code> (or blank)</td>
+                    <td><code>mail.<%= domain.domain %></code></td>
+                    <td><code>10</code></td>
+                    <td><code>3600</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <% if (inboundMode === 'webhook') { %>
+              <div class="guide-note warning">
+                <strong>&#9888; Webhook Mode:</strong> You're using webhook inbound mode. Instead of pointing MX to your server,
+                you should point MX to your email provider (Mailgun, SendGrid, etc.) and configure them to forward to
+                <code>https://<%= domain.domain %>/webhook/inbound</code>.
+              </div>
+            <% } else { %>
+              <div class="guide-note">
+                <strong>&#128161; Important:</strong> Your server must have <strong>port 25</strong> open for incoming SMTP connections.
+                NodeMail's built-in SMTP server is listening on port <code><%= inboundPort %></code>.
+                Make sure your firewall and hosting provider allow inbound TCP on port 25.
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- ─── STEP 3: SPF ─── -->
+        <div class="guide-step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h2>SPF Record — Authorize outbound sending</h2>
+            <p>An SPF record tells receiving servers which servers are allowed to send email on behalf of your domain.</p>
+
+            <div class="dns-record-box">
+              <table class="dns-table">
+                <thead>
+                  <tr><th>Type</th><th>Name / Host</th><th>Value</th><th>TTL</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>TXT</code></td>
+                    <td><code>@</code> (or blank)</td>
+                    <td>
+                      <code>v=spf1
+                      <% if (smtpHost.includes('brevo')) { %>
+                        include:spf.brevo.com
+                      <% } else if (smtpHost.includes('mailgun')) { %>
+                        include:mailgun.org
+                      <% } else if (smtpHost.includes('sendgrid')) { %>
+                        include:sendgrid.net
+                      <% } else if (smtpHost.includes('amazonaws')) { %>
+                        include:amazonses.com
+                      <% } else { %>
+                        include:<%= smtpHost %>
+                      <% } %>
+                      <% if (serverIP) { %>ip4:<%= serverIP %><% } %>
+                      ~all</code>
+                    </td>
+                    <td><code>3600</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="guide-note">
+              <strong>&#128161; Tip:</strong> The <code>include:</code> must match your outbound SMTP provider.
+              You're using <code><%= smtpHost %></code> for sending.
+              If you already have an SPF record, merge the <code>include:</code> into your existing record — don't create a second TXT record for SPF.
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── STEP 4: DKIM ─── -->
+        <div class="guide-step">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h2>DKIM Record — Email signature verification</h2>
+            <p>DKIM adds a cryptographic signature to your outgoing emails. This is configured through your SMTP provider.</p>
+
+            <div class="guide-note">
+              <strong>&#128736; Setup via your SMTP provider:</strong>
+              <% if (smtpHost.includes('brevo')) { %>
+                <ol>
+                  <li>Log in to <a href="https://app.brevo.com" target="_blank">Brevo dashboard</a></li>
+                  <li>Go to <strong>Settings → Senders, Domains & Dedicated IPs → Domains</strong></li>
+                  <li>Click <strong>Add a domain</strong> and enter <code><%= domain.domain %></code></li>
+                  <li>Brevo will give you DKIM DNS records (a CNAME or TXT record) — add them in your DNS</li>
+                  <li>Click <strong>Verify</strong> in Brevo once added</li>
+                </ol>
+              <% } else if (smtpHost.includes('mailgun')) { %>
+                <ol>
+                  <li>Log in to <a href="https://app.mailgun.com" target="_blank">Mailgun dashboard</a></li>
+                  <li>Go to <strong>Sending → Domains → Add New Domain</strong></li>
+                  <li>Add <code><%= domain.domain %></code> and follow the DNS setup wizard</li>
+                  <li>Add the provided DKIM TXT records to your DNS</li>
+                </ol>
+              <% } else if (smtpHost.includes('sendgrid')) { %>
+                <ol>
+                  <li>Log in to <a href="https://app.sendgrid.com" target="_blank">SendGrid dashboard</a></li>
+                  <li>Go to <strong>Settings → Sender Authentication → Domain Authentication</strong></li>
+                  <li>Follow the wizard for <code><%= domain.domain %></code></li>
+                  <li>Add the provided CNAME records to your DNS</li>
+                </ol>
+              <% } else { %>
+                <ol>
+                  <li>Log in to your SMTP provider's dashboard (<code><%= smtpHost %></code>)</li>
+                  <li>Find the domain authentication or DKIM settings</li>
+                  <li>Add <code><%= domain.domain %></code> and follow their instructions</li>
+                  <li>They'll provide DNS records (usually TXT or CNAME) to add</li>
+                </ol>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── STEP 5: DMARC ─── -->
+        <div class="guide-step">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <h2>DMARC Record — Email policy & reporting</h2>
+            <p>DMARC tells receiving servers what to do if SPF/DKIM checks fail. Start with a monitoring-only policy.</p>
+
+            <div class="dns-record-box">
+              <table class="dns-table">
+                <thead>
+                  <tr><th>Type</th><th>Name / Host</th><th>Value</th><th>TTL</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>TXT</code></td>
+                    <td><code>_dmarc</code></td>
+                    <td><code>v=DMARC1; p=none; rua=mailto:dmarc@<%= domain.domain %></code></td>
+                    <td><code>3600</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="guide-note">
+              <strong>&#128161; Tip:</strong> Start with <code>p=none</code> (monitor only). Once you've confirmed everything works,
+              tighten it to <code>p=quarantine</code> or <code>p=reject</code> for full protection.
+              The <code>rua</code> address receives aggregate reports about email authentication results.
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── STEP 6: Firewall ─── -->
+        <% if (inboundMode === 'smtp') { %>
+        <div class="guide-step">
+          <div class="step-number">6</div>
+          <div class="step-content">
+            <h2>Firewall — Open port 25 for inbound SMTP</h2>
+            <p>Your server must accept incoming connections on port 25 to receive email.</p>
+
+            <div class="dns-record-box" style="background: var(--bg);">
+              <pre style="color: var(--text); font-size: 13px; line-height: 1.8; margin: 0;">
+<span style="color: var(--text-muted);"># UFW (Ubuntu/Debian)</span>
+sudo ufw allow 25/tcp
+
+<span style="color: var(--text-muted);"># iptables</span>
+sudo iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+
+<span style="color: var(--text-muted);"># Check if port 25 is open</span>
+sudo ss -tlnp | grep :25</pre>
+            </div>
+
+            <div class="guide-note warning">
+              <strong>&#9888; Cloud providers:</strong> AWS, GCP, Azure, and Oracle Cloud <strong>block port 25 by default</strong>.
+              You may need to request port 25 to be unblocked, or use webhook inbound mode instead.
+              Hetzner and most dedicated server providers allow port 25.
+            </div>
+          </div>
+        </div>
+        <% } %>
+
+        <!-- ─── STEP 7: Verify ─── -->
+        <div class="guide-step">
+          <div class="step-number"><%= inboundMode === 'smtp' ? '7' : '6' %></div>
+          <div class="step-content">
+            <h2>Verify your configuration</h2>
+            <p>After adding all DNS records, wait 5–30 minutes for propagation, then verify.</p>
+
+            <div style="display:flex; gap: 12px; flex-wrap: wrap;">
+              <form method="POST" action="/domains/<%= domain._id %>/verify">
+                <button type="submit" class="btn btn-primary">&#128269; Verify DNS Records Now</button>
+              </form>
+              <a href="https://mxtoolbox.com/SuperTool.aspx?action=mx:<%= domain.domain %>" target="_blank" class="btn">
+                &#127760; Check on MXToolbox
+              </a>
+              <a href="https://www.mail-tester.com" target="_blank" class="btn">
+                &#128231; Test with Mail-Tester
+              </a>
+            </div>
+
+            <div class="guide-note" style="margin-top: 16px;">
+              <strong>&#128161; Testing:</strong> After verification passes, send a test email to an external address (Gmail, Outlook)
+              and check if it arrives. Also try sending <em>to</em> your domain to confirm inbound works.
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── Quick Reference ─── -->
+        <div class="settings-card" style="margin-top: 32px;">
+          <h2>&#128203; Quick DNS Reference for <%= domain.domain %></h2>
+          <table class="dns-table" style="font-size: 13px;">
+            <thead>
+              <tr><th>Record</th><th>Type</th><th>Name</th><th>Value</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>A Record</td>
+                <td><code>A</code></td>
+                <td><code>mail</code></td>
+                <td><code><%= serverIP || 'YOUR_SERVER_IP' %></code></td>
+              </tr>
+              <tr>
+                <td>MX Record</td>
+                <td><code>MX</code></td>
+                <td><code>@</code></td>
+                <td><code>mail.<%= domain.domain %></code> (priority 10)</td>
+              </tr>
+              <tr>
+                <td>SPF</td>
+                <td><code>TXT</code></td>
+                <td><code>@</code></td>
+                <td><code>v=spf1
+                  <% if (smtpHost.includes('brevo')) { %>include:spf.brevo.com<% } else if (smtpHost.includes('mailgun')) { %>include:mailgun.org<% } else if (smtpHost.includes('sendgrid')) { %>include:sendgrid.net<% } else { %>include:<%= smtpHost %><% } %>
+                  <% if (serverIP) { %>ip4:<%= serverIP %><% } %> ~all</code>
+                </td>
+              </tr>
+              <tr>
+                <td>DMARC</td>
+                <td><code>TXT</code></td>
+                <td><code>_dmarc</code></td>
+                <td><code>v=DMARC1; p=none; rua=mailto:dmarc@<%= domain.domain %></code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — Users</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <%- include('../partials/sidebar') %>
+
+    <div class="main">
+      <div class="toolbar">
+        <span class="toolbar-title">&#128101; User Management</span>
+      </div>
+
+      <div class="settings-page">
+
+        <% if (error) { %>
+          <div class="error-msg"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+          <div class="success-msg"><%= success %></div>
+        <% } %>
+
+        <!-- Add user -->
+        <div class="settings-card">
+          <h2>Add Mailbox User</h2>
+          <p class="card-desc">Create a new user account. Use an email from one of your added domains.</p>
+          <form method="POST" action="/users/add">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div class="form-row">
+                <label>Email</label>
+                <input type="email" name="email" placeholder="user@yourdomain.com" required>
+              </div>
+              <div class="form-row">
+                <label>Password</label>
+                <input type="password" name="password" placeholder="Strong password" required>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div class="form-row">
+                <label>Display Name</label>
+                <input type="text" name="name" placeholder="John Doe">
+              </div>
+              <div class="form-row">
+                <label>Aliases (comma separated)</label>
+                <input type="text" name="aliases" placeholder="sales@domain.com, info@domain.com">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">&#10003; Create User</button>
+          </form>
+        </div>
+
+        <!-- User list -->
+        <div class="settings-card">
+          <h2>Existing Users</h2>
+          <% if (users.length === 0) { %>
+            <p class="card-desc">No users yet.</p>
+          <% } else { %>
+            <table class="settings-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Name</th>
+                  <th>Aliases</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% users.forEach(function(u) { %>
+                  <tr>
+                    <td><strong><%= u.email %></strong></td>
+                    <td><%= u.name || '—' %></td>
+                    <td class="text-muted"><%= u.aliases.length > 0 ? u.aliases.join(', ') : '—' %></td>
+                    <td class="text-muted"><%= new Date(u.createdAt).toLocaleDateString() %></td>
+                    <td>
+                      <form method="POST" action="/users/<%= u._id %>/delete" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this user and all their emails?')">&#128465; Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          <% } %>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — DNS Verification for <%= domain.domain %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <%- include('../partials/sidebar') %>
+
+    <div class="main">
+      <div class="toolbar">
+        <a href="/domains" class="btn btn-sm">&larr; Domains</a>
+        <span class="toolbar-title" style="margin-left:12px;">DNS Verification Results</span>
+      </div>
+
+      <div class="settings-page">
+        <div class="guide-header">
+          <h1>DNS Verification for <span class="accent"><%= domain.domain %></span></h1>
+        </div>
+
+        <!-- MX Check -->
+        <div class="verify-card <%= results.mx ? 'pass' : 'fail' %>">
+          <div class="verify-icon"><%= results.mx ? '&#10003;' : '&#10007;' %></div>
+          <div class="verify-body">
+            <h3>MX Record</h3>
+            <% if (results.mx) { %>
+              <p>MX records found for <code><%= domain.domain %></code>.</p>
+              <% if (results.mxPointsToUs) { %>
+                <p class="text-green">&#10003; MX points to this server (<code><%= serverHostname %></code>).</p>
+              <% } else { %>
+                <p class="text-yellow">&#9888; MX records exist but may not point to this server (<code><%= serverHostname %></code>). Verify manually.</p>
+              <% } %>
+            <% } else { %>
+              <p>No MX records found. <%= results.mxError || '' %></p>
+              <p>Add an MX record pointing to <code>mail.<%= domain.domain %></code> → <a href="/domains/<%= domain._id %>/guide">View Guide</a></p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- SPF Check -->
+        <div class="verify-card <%= results.spf ? 'pass' : 'fail' %>">
+          <div class="verify-icon"><%= results.spf ? '&#10003;' : '&#10007;' %></div>
+          <div class="verify-body">
+            <h3>SPF Record</h3>
+            <% if (results.spf) { %>
+              <p>SPF record found:</p>
+              <code class="block-code"><%= results.spfValue %></code>
+            <% } else { %>
+              <p>No SPF record found. <%= results.spfError || '' %></p>
+              <p>Add a TXT record with your SPF policy → <a href="/domains/<%= domain._id %>/guide">View Guide</a></p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- DMARC Check -->
+        <div class="verify-card <%= results.dmarc ? 'pass' : 'warn' %>">
+          <div class="verify-icon"><%= results.dmarc ? '&#10003;' : '&#9888;' %></div>
+          <div class="verify-body">
+            <h3>DMARC Record</h3>
+            <% if (results.dmarc) { %>
+              <p>DMARC record found:</p>
+              <code class="block-code"><%= results.dmarcValue %></code>
+            <% } else { %>
+              <p>No DMARC record found. This is optional but recommended for email deliverability.</p>
+              <p>Add a TXT record for <code>_dmarc.<%= domain.domain %></code> → <a href="/domains/<%= domain._id %>/guide">View Guide</a></p>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Overall Status -->
+        <div class="settings-card" style="margin-top: 24px;">
+          <h2>Overall Status</h2>
+          <% if (domain.verified) { %>
+            <div class="success-msg">
+              &#10003; Domain <strong><%= domain.domain %></strong> is verified and ready to send/receive email!
+            </div>
+          <% } else { %>
+            <div class="error-msg">
+              Some DNS records are missing. Follow the <a href="/domains/<%= domain._id %>/guide" style="color:#f87171">DNS Setup Guide</a> to complete configuration, then verify again.
+            </div>
+          <% } %>
+
+          <div style="display:flex; gap: 12px; margin-top: 16px;">
+            <form method="POST" action="/domains/<%= domain._id %>/verify">
+              <button type="submit" class="btn btn-primary">&#128260; Re-verify</button>
+            </form>
+            <a href="/domains/<%= domain._id %>/guide" class="btn">&#128214; DNS Guide</a>
+            <a href="/domains" class="btn">Back to Domains</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

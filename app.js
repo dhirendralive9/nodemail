@@ -1,4 +1,4 @@
-require("dotenv").config({ override: true, processEnv: process.env });
+require("dotenv").config();
 const express  = require("express");
 const mongoose = require("mongoose");
 const session  = require("express-session");
@@ -34,6 +34,7 @@ app.use(session({
 // ── Routes ──
 app.use("/", require("./routes/auth"));
 app.use("/", require("./routes/emails"));
+app.use("/", require("./routes/settings"));
 app.use("/webhook", require("./routes/webhook"));
 
 // ── Boot ──
