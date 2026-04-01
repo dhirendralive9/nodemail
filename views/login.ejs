@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — Sign In</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>NodeMail</h1>
+      <p class="sub">Sign in to your mailbox</p>
+
+      <% if (error) { %>
+        <div class="error-msg"><%= error %></div>
+      <% } %>
+
+      <form method="POST" action="/login">
+        <div class="form-row">
+          <label>Email</label>
+          <input type="email" name="email" placeholder="you@yourdomain.com" required autofocus>
+        </div>
+        <div class="form-row">
+          <label>Password</label>
+          <input type="password" name="password" placeholder="Password" required>
+        </div>
+        <div class="form-row" style="margin-top: 24px;">
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:12px;">Sign In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

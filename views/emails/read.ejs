@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — <%= email.subject %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <%- include('../partials/sidebar') %>
+
+    <div class="main">
+      <div class="toolbar">
+        <a href="/?folder=<%= email.folder %>" class="btn btn-sm">&larr; Back</a>
+        <div class="toolbar-spacer"></div>
+        <form method="POST" action="/email/<%= email._id %>/star" style="display:inline">
+          <button type="submit" class="btn btn-sm"><%= email.starred ? '★ Unstar' : '☆ Star' %></button>
+        </form>
+        <form method="POST" action="/email/<%= email._id %>/toggle-read" style="display:inline">
+          <button type="submit" class="btn btn-sm"><%= email.read ? 'Mark Unread' : 'Mark Read' %></button>
+        </form>
+      </div>
+
+      <div class="email-reader">
+        <h1><%= email.subject %></h1>
+
+        <div class="email-meta">
+          <div><strong>From:</strong> <%= email.fromName ? email.fromName + ' &lt;' + email.from + '&gt;' : email.from %></div>
+          <div><strong>To:</strong> <%= email.to.join(', ') %></div>
+          <% if (email.cc && email.cc.length > 0) { %>
+            <div><strong>CC:</strong> <%= email.cc.join(', ') %></div>
+          <% } %>
+          <div><strong>Date:</strong> <%= new Date(email.date).toLocaleString() %></div>
+        </div>
+
+        <div class="email-body">
+          <% if (email.htmlBody && email.htmlBody.trim()) { %>
+            <iframe
+              srcdoc="<%= email.htmlBody.replace(/\"/g, '&quot;') %>"
+              sandbox="allow-same-origin"
+              onload="this.style.height = this.contentWindow.document.body.scrollHeight + 20 + 'px'"
+            ></iframe>
+          <% } else { %>
+            <pre style="white-space:pre-wrap; font-family:inherit;"><%= email.textBody %></pre>
+          <% } %>
+        </div>
+
+        <% if (email.attachments && email.attachments.length > 0) { %>
+          <div class="att-list">
+            <h3>&#128206; Attachments (<%= email.attachments.length %>)</h3>
+            <% email.attachments.forEach(function(att) { %>
+              <a href="/attachment/<%= email._id %>/<%= att._id %>" class="att-item">
+                &#128196; <%= att.filename %>
+                <span style="color:var(--text-muted); font-size:11px;">(<%= (att.size / 1024).toFixed(1) %> KB)</span>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <div class="email-actions">
+          <a href="/reply/<%= email._id %>" class="btn btn-primary">&#8617; Reply</a>
+          <a href="/forward/<%= email._id %>" class="btn">&#8618; Forward</a>
+
+          <!-- Move to folder -->
+          <form method="POST" action="/email/<%= email._id %>/move" style="display:inline-flex;align-items:center;gap:4px;">
+            <select name="folder" style="padding:8px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;">
+              <option value="inbox">Inbox</option>
+              <option value="drafts">Drafts</option>
+              <option value="trash">Trash</option>
+              <% if (sidebar.customFolders) { sidebar.customFolders.forEach(function(cf) { %>
+                <option value="<%= cf._id %>"><%= cf.name %></option>
+              <% }); } %>
+            </select>
+            <button type="submit" class="btn btn-sm">Move</button>
+          </form>
+
+          <form method="POST" action="/email/<%= email._id %>/delete" style="display:inline">
+            <input type="hidden" name="returnFolder" value="<%= email.folder %>">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('<%= email.folder === "trash" ? "Permanently delete?" : "Move to trash?" %>')">
+              &#128465; <%= email.folder === 'trash' ? 'Delete Forever' : 'Delete' %>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

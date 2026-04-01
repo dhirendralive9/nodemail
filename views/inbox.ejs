@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — <%= currentFolderName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <%- include('partials/sidebar') %>
+
+    <div class="main">
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <span class="toolbar-title"><%= currentFolderName %></span>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">(<%= total %> messages)</span>
+        <div class="toolbar-spacer"></div>
+        <form class="search-box" action="/search" method="GET">
+          <input type="text" name="q" placeholder="Search emails..." value="<%= query %>">
+          <button type="submit">&#128269;</button>
+        </form>
+      </div>
+
+      <!-- Bulk actions -->
+      <form method="POST" action="/bulk">
+        <input type="hidden" name="returnFolder" value="<%= folder %>">
+        <div class="bulk-bar">
+          <input type="checkbox" id="selectAll">
+          <button type="submit" name="action" value="read" class="btn btn-sm">Mark Read</button>
+          <button type="submit" name="action" value="unread" class="btn btn-sm">Mark Unread</button>
+          <button type="submit" name="action" value="star" class="btn btn-sm">&#11088; Star</button>
+          <button type="submit" name="action" value="trash" class="btn btn-sm">&#128465; Trash</button>
+          <% if (folder === 'trash') { %>
+            <button type="submit" name="action" value="delete" class="btn btn-sm btn-danger" onclick="return confirm('Permanently delete selected?')">Delete Forever</button>
+            <button type="submit" name="action" value="move" class="btn btn-sm">
+              <input type="hidden" name="folder" value="inbox"> Move to Inbox
+            </button>
+          <% } %>
+        </div>
+
+        <!-- Email list -->
+        <div class="email-list">
+          <% if (emails.length === 0) { %>
+            <div class="empty">
+              <div class="icon">&#128237;</div>
+              <p>No emails in <%= currentFolderName %></p>
+            </div>
+          <% } %>
+
+          <% emails.forEach(function(e) { %>
+            <div class="email-row <%= e.read ? '' : 'unread' %>" onclick="if(event.target.type!=='checkbox')window.location='/email/<%= e._id %>'">
+              <input type="checkbox" name="ids" value="<%= e._id %>" onclick="event.stopPropagation()">
+              <form method="POST" action="/email/<%= e._id %>/star" style="display:inline" onclick="event.stopPropagation()">
+                <button type="submit" class="email-star <%= e.starred ? 'starred' : '' %>">
+                  <%= e.starred ? '★' : '☆' %>
+                </button>
+              </form>
+              <span class="email-from"><%= e.fromName || e.from %></span>
+              <span class="email-subject">
+                <span class="subj-text"><%= e.subject %></span>
+                <% if (e.attachments && e.attachments.length > 0) { %>
+                  <span class="email-att-badge">&#128206; <%= e.attachments.length %></span>
+                <% } %>
+              </span>
+              <span class="email-date"><%= new Date(e.date).toLocaleDateString('en-US', { month:'short', day:'numeric', year: new Date(e.date).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined }) %></span>
+            </div>
+          <% }); %>
+        </div>
+      </form>
+
+      <!-- Pagination -->
+      <% if (pages > 1) { %>
+        <div class="pagination">
+          <% if (page > 1) { %><a href="/?folder=<%= folder %>&page=<%= page - 1 %>">&laquo; Prev</a><% } %>
+          <% for (let p = 1; p <= pages; p++) { %>
+            <% if (p === page) { %><span class="current"><%= p %></span>
+            <% } else { %><a href="/?folder=<%= folder %>&page=<%= p %>"><%= p %></a><% } %>
+          <% } %>
+          <% if (page < pages) { %><a href="/?folder=<%= folder %>&page=<%= page + 1 %>">Next &raquo;</a><% } %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

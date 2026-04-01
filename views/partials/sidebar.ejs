@@ -1,0 +1,45 @@
+<aside class="sidebar">
+  <div class="sidebar-brand">NodeMail <span>v1</span></div>
+
+  <a href="/compose" class="compose-btn">&#9998; Compose</a>
+
+  <a href="/?folder=inbox" class="nav-item <%= typeof folder !== 'undefined' && folder === 'inbox' ? 'active' : '' %>">
+    <span class="icon">&#128229;</span> Inbox
+    <% if (sidebar.unread > 0) { %><span class="badge"><%= sidebar.unread %></span><% } %>
+  </a>
+  <a href="/?folder=starred" class="nav-item <%= typeof folder !== 'undefined' && folder === 'starred' ? 'active' : '' %>">
+    <span class="icon">&#11088;</span> Starred
+    <% if (sidebar.counts.starred > 0) { %><span class="badge" style="background:#eab308"><%= sidebar.counts.starred %></span><% } %>
+  </a>
+  <a href="/?folder=sent" class="nav-item <%= typeof folder !== 'undefined' && folder === 'sent' ? 'active' : '' %>">
+    <span class="icon">&#128228;</span> Sent
+  </a>
+  <a href="/?folder=drafts" class="nav-item <%= typeof folder !== 'undefined' && folder === 'drafts' ? 'active' : '' %>">
+    <span class="icon">&#128221;</span> Drafts
+  </a>
+  <a href="/?folder=trash" class="nav-item <%= typeof folder !== 'undefined' && folder === 'trash' ? 'active' : '' %>">
+    <span class="icon">&#128465;</span> Trash
+    <% if (sidebar.counts.trash > 0) { %><span class="badge" style="background:var(--red)"><%= sidebar.counts.trash %></span><% } %>
+  </a>
+
+  <% if (sidebar.customFolders && sidebar.customFolders.length > 0) { %>
+    <div class="sidebar-section">Folders</div>
+    <% sidebar.customFolders.forEach(function(cf) { %>
+      <a href="/?folder=<%= cf._id %>" class="nav-item <%= typeof folder !== 'undefined' && folder === cf._id.toString() ? 'active' : '' %>">
+        <span class="icon" style="color:<%= cf.color %>">&#128193;</span> <%= cf.name %>
+        <% if (sidebar.counts['custom_' + cf._id] > 0) { %><span class="badge"><%= sidebar.counts['custom_' + cf._id] %></span><% } %>
+      </a>
+    <% }); %>
+  <% } %>
+
+  <div class="sidebar-section">New Folder</div>
+  <form class="folder-form" method="POST" action="/folders/create">
+    <input type="text" name="name" placeholder="Folder name" required>
+    <button type="submit">+</button>
+  </form>
+
+  <div class="sidebar-bottom">
+    Logged in as <strong><%= session.userEmail %></strong><br>
+    <a href="/logout">Sign out</a>
+  </div>
+</aside>
