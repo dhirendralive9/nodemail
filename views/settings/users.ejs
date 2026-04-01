@@ -12,7 +12,7 @@
 
     <div class="main">
       <div class="toolbar">
-        <span class="toolbar-title">&#128101; User Management</span>
+        <span class="toolbar-title">User Management</span>
       </div>
 
       <div class="settings-page">
@@ -26,30 +26,24 @@
 
         <!-- Add user -->
         <div class="settings-card">
-          <h2>Add Mailbox User</h2>
-          <p class="card-desc">Create a new user account. Use an email from one of your added domains.</p>
+          <h2>Add User</h2>
+          <p class="card-desc">Create a login account. After creating, assign mailboxes in the <a href="/mailboxes">Mailboxes</a> page.</p>
           <form method="POST" action="/users/add">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-              <div class="form-row">
-                <label>Email</label>
-                <input type="email" name="email" placeholder="user@yourdomain.com" required>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:14px;">
+              <div class="form-row" style="margin-bottom:0;">
+                <label>Login Email</label>
+                <input type="email" name="email" placeholder="user@example.com" required style="margin-bottom:0;">
               </div>
-              <div class="form-row">
+              <div class="form-row" style="margin-bottom:0;">
                 <label>Password</label>
-                <input type="password" name="password" placeholder="Strong password" required>
+                <input type="password" name="password" placeholder="Strong password" required style="margin-bottom:0;">
               </div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
-              <div class="form-row">
+              <div class="form-row" style="margin-bottom:0;">
                 <label>Display Name</label>
-                <input type="text" name="name" placeholder="John Doe">
-              </div>
-              <div class="form-row">
-                <label>Aliases (comma separated)</label>
-                <input type="text" name="aliases" placeholder="sales@domain.com, info@domain.com">
+                <input type="text" name="name" placeholder="John Doe" style="margin-bottom:0;">
               </div>
             </div>
-            <button type="submit" class="btn btn-primary">&#10003; Create User</button>
+            <button type="submit" class="btn btn-primary">Create User</button>
           </form>
         </div>
 
@@ -62,9 +56,9 @@
             <table class="settings-table">
               <thead>
                 <tr>
-                  <th>Email</th>
+                  <th>Login Email</th>
                   <th>Name</th>
-                  <th>Aliases</th>
+                  <th>Assigned Mailboxes</th>
                   <th>Created</th>
                   <th>Actions</th>
                 </tr>
@@ -73,12 +67,20 @@
                 <% users.forEach(function(u) { %>
                   <tr>
                     <td><strong><%= u.email %></strong></td>
-                    <td><%= u.name || '—' %></td>
-                    <td class="text-muted"><%= u.aliases.length > 0 ? u.aliases.join(', ') : '—' %></td>
+                    <td><%= u.name || '\u2014' %></td>
+                    <td>
+                      <% if (u.mailboxes && u.mailboxes.length > 0) { %>
+                        <% u.mailboxes.forEach(function(mb) { %>
+                          <span class="badge-status verified" style="margin-right:4px;margin-bottom:4px;display:inline-block;"><%= mb.address %></span>
+                        <% }); %>
+                      <% } else { %>
+                        <span style="color:var(--text-muted);font-size:12px;">None &mdash; <a href="/mailboxes">assign mailboxes</a></span>
+                      <% } %>
+                    </td>
                     <td class="text-muted"><%= new Date(u.createdAt).toLocaleDateString() %></td>
                     <td>
                       <form method="POST" action="/users/<%= u._id %>/delete" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this user and all their emails?')">&#128465; Delete</button>
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this user and all their emails?')">Delete</button>
                       </form>
                     </td>
                   </tr>
@@ -86,6 +88,17 @@
               </tbody>
             </table>
           <% } %>
+        </div>
+
+        <!-- How it works -->
+        <div class="settings-card">
+          <h2>Users vs Mailboxes</h2>
+          <div class="card-desc" style="line-height:1.8;">
+            <strong>Users</strong> are login accounts for the NodeMail web interface. A user logs in with their email and password.<br><br>
+            <strong>Mailboxes</strong> are email addresses on your domains (e.g. <code>hello@yourdomain.com</code>). They handle inbound and outbound mail.<br><br>
+            A user can be assigned to multiple mailboxes, and a mailbox can have multiple users assigned to it.
+            Go to <a href="/mailboxes">Mailboxes</a> to create addresses and assign users.
+          </div>
         </div>
 
       </div>

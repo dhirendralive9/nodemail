@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — Mailboxes</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="app">
+    <%- include('../partials/sidebar') %>
+
+    <div class="main">
+      <div class="toolbar">
+        <span class="toolbar-title">Mailboxes</span>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Email addresses for sending & receiving</span>
+      </div>
+
+      <div class="settings-page">
+
+        <% if (error) { %>
+          <div class="error-msg"><%= error %></div>
+        <% } %>
+        <% if (success) { %>
+          <div class="success-msg"><%= success %></div>
+        <% } %>
+
+        <!-- Create mailbox -->
+        <div class="settings-card">
+          <h2>Create Mailbox</h2>
+          <p class="card-desc">Create an email address on one of your verified domains. This address can send and receive email.</p>
+
+          <% if (domains.length === 0) { %>
+            <div class="error-msg">
+              No verified domains. <a href="/domains" style="color:#f87171;">Add and verify a domain</a> first.
+            </div>
+          <% } else { %>
+            <form method="POST" action="/mailboxes/add">
+              <div style="display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:end; margin-bottom:14px;">
+                <div class="form-row" style="margin-bottom:0;">
+                  <label>Address</label>
+                  <input type="text" name="localPart" placeholder="hello" required style="margin-bottom:0;">
+                </div>
+                <div style="padding-bottom:6px; font-size:18px; color:var(--text-muted);">@</div>
+                <div class="form-row" style="margin-bottom:0;">
+                  <label>Domain</label>
+                  <select name="domain" class="form-select" style="margin-bottom:0;">
+                    <% domains.forEach(function(d) { %>
+                      <option value="<%= d.domain %>"><%= d.domain %></option>
+                    <% }); %>
+                  </select>
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                <div class="form-row" style="margin-bottom:0;">
+                  <label>Display Name</label>
+                  <input type="text" name="displayName" placeholder="e.g. Support, Sales, John" style="margin-bottom:0;">
+                </div>
+                <div class="form-row" style="margin-bottom:0; display:flex; align-items:center; gap:10px; padding-top:22px;">
+                  <input type="checkbox" name="catchAll" id="catchAll" style="width:16px;height:16px;accent-color:var(--accent);">
+                  <label for="catchAll" style="margin-bottom:0; text-transform:none; letter-spacing:0; font-size:13px; color:var(--text);">
+                    Catch-all (receives all unmatched mail for this domain)
+                  </label>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary">Create Mailbox</button>
+            </form>
+          <% } %>
+        </div>
+
+        <!-- Mailbox list -->
+        <div class="settings-card">
+          <h2>Active Mailboxes</h2>
+
+          <% if (mailboxes.length === 0) { %>
+            <p class="card-desc">No mailboxes created yet.</p>
+          <% } else { %>
+            <table class="settings-table">
+              <thead>
+                <tr>
+                  <th>Email Address</th>
+                  <th>Display Name</th>
+                  <th>Type</th>
+                  <th>Assigned Users</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% mailboxes.forEach(function(mb) { %>
+                  <tr>
+                    <td><strong><%= mb.address %></strong></td>
+                    <td><%= mb.displayName || '—' %></td>
+                    <td>
+                      <% if (mb.catchAll) { %>
+                        <span class="badge-status" style="background:#1e1b4b;color:#a78bfa;">Catch-all</span>
+                      <% } else { %>
+                        <span style="color:var(--text-muted);">Standard</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <!-- Assign users form -->
+                      <form method="POST" action="/mailboxes/<%= mb._id %>/assign" class="assign-form">
+                        <div class="checkbox-group">
+                          <% users.forEach(function(u) { %>
+                            <label class="checkbox-label">
+                              <input type="checkbox" name="userIds" value="<%= u._id %>"
+                                <%= (mb.assignedUsers && mb.assignedUsers.some(au => au._id.toString() === u._id.toString())) ? 'checked' : '' %>>
+                              <span><%= u.email %></span>
+                            </label>
+                          <% }); %>
+                        </div>
+                        <button type="submit" class="btn btn-sm" style="margin-top:6px;">Save</button>
+                      </form>
+                    </td>
+                    <td>
+                      <% if (mb.active) { %>
+                        <span class="badge-status verified">Active</span>
+                      <% } else { %>
+                        <span class="badge-status pending">Disabled</span>
+                      <% } %>
+                    </td>
+                    <td class="action-cell" style="flex-direction:column;align-items:flex-start;">
+                      <form method="POST" action="/mailboxes/<%= mb._id %>/toggle" style="display:inline">
+                        <button type="submit" class="btn btn-sm"><%= mb.active ? 'Disable' : 'Enable' %></button>
+                      </form>
+                      <form method="POST" action="/mailboxes/<%= mb._id %>/delete" style="display:inline">
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this mailbox?')">Delete</button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          <% } %>
+        </div>
+
+        <!-- Info -->
+        <div class="settings-card">
+          <h2>How it works</h2>
+          <div class="card-desc" style="line-height:1.8;">
+            <strong>Inbound:</strong> When an email arrives for an address, NodeMail delivers it to all assigned users' inboxes.
+            If no users are assigned, the admin receives it. Catch-all mailboxes receive any mail sent to the domain that doesn't match another mailbox.<br><br>
+            <strong>Outbound:</strong> When composing an email, users can pick any mailbox they're assigned to in the "From" field.
+            Admin can send from any mailbox.<br><br>
+            <strong>Tip:</strong> Create mailboxes like <code>hello@</code>, <code>support@</code>, <code>sales@</code> and assign team members as needed.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

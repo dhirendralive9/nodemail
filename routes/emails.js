@@ -5,6 +5,7 @@ const path    = require("path");
 const fs      = require("fs");
 const Email   = require("../models/Email");
 const Folder  = require("../models/Folder");
+const Mailbox = require("../models/Mailbox");
 const { requireAuth } = require("../lib/auth");
 const { sendMail }    = require("../lib/mailer");
 
@@ -201,13 +202,27 @@ router.post("/bulk", async (req, res) => {
   res.redirect("/?folder=" + (returnFolder || "inbox"));
 });
 
+// ── Helper: get user's available mailboxes (assigned + admin gets all) ──
+async function getUserMailboxes(userId) {
+  // Check if user is admin (first user created)
+  const firstUser = await require("../models/User").findOne().sort({ createdAt: 1 });
+  const isAdmin = firstUser && firstUser._id.toString() === userId.toString();
+
+  if (isAdmin) {
+    return Mailbox.find({ active: true }).sort({ domain: 1, localPart: 1 }).lean();
+  }
+  return Mailbox.find({ assignedUsers: userId, active: true }).sort({ domain: 1, localPart: 1 }).lean();
+}
+
 // ── Compose form ──
 router.get("/compose", async (req, res) => {
   const sidebar = await getSidebar(req.session.userId);
+  const mailboxes = await getUserMailboxes(req.session.userId);
   res.render("emails/compose", {
     sidebar,
     session: req.session,
-    prefill: { to: req.query.to || "", subject: req.query.subject || "", body: "", cc: "", bcc: "", inReplyTo: "", references: "" },
+    mailboxes,
+    prefill: { to: req.query.to || "", subject: req.query.subject || "", body: "", cc: "", bcc: "", inReplyTo: "", references: "", fromAddress: "" },
   });
 });
 
@@ -217,12 +232,17 @@ router.get("/reply/:id", async (req, res) => {
   if (!email) return res.redirect("/");
 
   const sidebar = await getSidebar(req.session.userId);
+  const mailboxes = await getUserMailboxes(req.session.userId);
   const subject = email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`;
   const quotedText = `\n\n--- On ${email.date.toUTCString()}, ${email.from} wrote ---\n${email.textBody}`;
+
+  // Try to auto-select the mailbox this email was sent to
+  const matchedMailbox = mailboxes.find(mb => email.to.includes(mb.address));
 
   res.render("emails/compose", {
     sidebar,
     session: req.session,
+    mailboxes,
     prefill: {
       to: email.from,
       cc: "",
@@ -231,6 +251,7 @@ router.get("/reply/:id", async (req, res) => {
       body: quotedText,
       inReplyTo: email.messageId,
       references: [...email.references, email.messageId].join(" "),
+      fromAddress: matchedMailbox ? matchedMailbox.address : "",
     },
   });
 });
@@ -241,24 +262,35 @@ router.get("/forward/:id", async (req, res) => {
   if (!email) return res.redirect("/");
 
   const sidebar = await getSidebar(req.session.userId);
+  const mailboxes = await getUserMailboxes(req.session.userId);
   const subject = email.subject.startsWith("Fwd:") ? email.subject : `Fwd: ${email.subject}`;
   const fwdText = `\n\n--- Forwarded message ---\nFrom: ${email.from}\nDate: ${email.date.toUTCString()}\nSubject: ${email.subject}\n\n${email.textBody}`;
 
   res.render("emails/compose", {
     sidebar,
     session: req.session,
-    prefill: { to: "", cc: "", bcc: "", subject, body: fwdText, inReplyTo: "", references: "" },
+    mailboxes,
+    prefill: { to: "", cc: "", bcc: "", subject, body: fwdText, inReplyTo: "", references: "", fromAddress: "" },
   });
 });
 
 // ── Send email ──
 router.post("/send", upload.array("attachments", 10), async (req, res) => {
-  const { to, cc, bcc, subject, body, inReplyTo, references } = req.body;
+  const { to, cc, bcc, subject, body, inReplyTo, references, fromAddress } = req.body;
 
   if (!to) return res.redirect("/compose");
 
-  const fromAddr = req.session.userEmail;
-  const fromName = req.session.userName;
+  // Determine "from" — use selected mailbox or fall back to user email
+  let fromAddr = req.session.userEmail;
+  let fromName = req.session.userName;
+
+  if (fromAddress) {
+    const mailbox = await Mailbox.findOne({ address: fromAddress, active: true });
+    if (mailbox) {
+      fromAddr = mailbox.address;
+      fromName = mailbox.displayName || mailbox.localPart;
+    }
+  }
 
   // Build nodemailer attachments
   const attachments = (req.files || []).map((f) => ({
@@ -312,10 +344,12 @@ router.post("/send", upload.array("attachments", 10), async (req, res) => {
   } catch (err) {
     console.error("Send error:", err);
     const sidebar = await getSidebar(req.session.userId);
+    const mailboxes = await getUserMailboxes(req.session.userId);
     res.render("emails/compose", {
       sidebar,
       session: req.session,
-      prefill: { to, cc, bcc, subject, body, inReplyTo, references },
+      mailboxes,
+      prefill: { to, cc, bcc, subject, body, inReplyTo, references, fromAddress },
       error: err.message,
     });
   }

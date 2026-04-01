@@ -21,18 +21,37 @@
           <div class="error-msg"><%= error %></div>
         <% } %>
 
+        <% if (typeof mailboxes !== 'undefined' && mailboxes.length === 0) { %>
+          <div class="error-msg" style="margin-bottom:20px;">
+            No mailboxes available. <a href="/mailboxes" style="color:#f87171;">Create a mailbox</a> first to send emails.
+          </div>
+        <% } %>
+
         <form method="POST" action="/send" enctype="multipart/form-data">
           <input type="hidden" name="inReplyTo" value="<%= prefill.inReplyTo %>">
           <input type="hidden" name="references" value="<%= prefill.references %>">
 
+          <!-- FROM selector -->
           <div class="form-row">
             <label>From</label>
-            <input type="text" value="<%= session.userName %> &lt;<%= session.userEmail %>&gt;" disabled>
+            <% if (typeof mailboxes !== 'undefined' && mailboxes.length > 0) { %>
+              <select name="fromAddress" class="form-select">
+                <% mailboxes.forEach(function(mb) { %>
+                  <option value="<%= mb.address %>"
+                    <%= (prefill.fromAddress === mb.address) ? 'selected' : '' %>>
+                    <%= mb.displayName ? mb.displayName + ' <' + mb.address + '>' : mb.address %>
+                  </option>
+                <% }); %>
+              </select>
+            <% } else { %>
+              <input type="text" value="<%= session.userName %> <<%= session.userEmail %>>" disabled>
+              <input type="hidden" name="fromAddress" value="">
+            <% } %>
           </div>
 
           <div class="form-row">
             <label>To</label>
-            <input type="email" name="to" placeholder="recipient@example.com" value="<%= prefill.to %>" required>
+            <input type="text" name="to" placeholder="recipient@example.com" value="<%= prefill.to %>" required>
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
@@ -62,7 +81,7 @@
           </div>
 
           <div style="display:flex;gap:10px;margin-top:8px;">
-            <button type="submit" class="btn btn-primary">&#9993; Send Email</button>
+            <button type="submit" class="btn btn-primary" <%= (typeof mailboxes !== 'undefined' && mailboxes.length === 0) ? 'disabled' : '' %>>Send Email</button>
             <a href="/" class="btn">Cancel</a>
           </div>
         </form>
