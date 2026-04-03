@@ -276,7 +276,7 @@ router.get("/forward/:id", async (req, res) => {
 
 // ── Send email ──
 router.post("/send", upload.array("attachments", 10), async (req, res) => {
-  const { to, cc, bcc, subject, body, inReplyTo, references, fromAddress } = req.body;
+  const { to, cc, bcc, subject, body, htmlBody, inReplyTo, references, fromAddress } = req.body;
 
   if (!to) return res.redirect("/compose");
 
@@ -299,6 +299,13 @@ router.post("/send", upload.array("attachments", 10), async (req, res) => {
     contentType: f.mimetype,
   }));
 
+  // Use rich HTML from Quill if available, fall back to plain text
+  const emailHtml = htmlBody && htmlBody.trim()
+    ? `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;line-height:1.6;color:#222;">${htmlBody}</div>`
+    : `<div style="white-space:pre-wrap;font-family:sans-serif;font-size:14px;color:#222;">${(body || '').replace(/</g,"&lt;").replace(/\n/g,"<br>")}</div>`;
+
+  const plainText = body || '';
+
   try {
     const info = await sendMail({
       from: `"${fromName}" <${fromAddr}>`,
@@ -306,8 +313,8 @@ router.post("/send", upload.array("attachments", 10), async (req, res) => {
       cc: cc || undefined,
       bcc: bcc || undefined,
       subject: subject || "(no subject)",
-      text: body,
-      html: `<div style="white-space:pre-wrap;font-family:sans-serif;">${body.replace(/</g,"&lt;").replace(/\n/g,"<br>")}</div>`,
+      text: plainText,
+      html: emailHtml,
       inReplyTo: inReplyTo || undefined,
       references: references ? references.split(" ").filter(Boolean) : undefined,
       attachments,
@@ -330,8 +337,8 @@ router.post("/send", upload.array("attachments", 10), async (req, res) => {
       cc:          cc ? cc.split(",").map(s => s.trim()) : [],
       bcc:         bcc ? bcc.split(",").map(s => s.trim()) : [],
       subject:     subject || "(no subject)",
-      textBody:    body,
-      htmlBody:    `<div style="white-space:pre-wrap;">${body.replace(/</g,"&lt;").replace(/\n/g,"<br>")}</div>`,
+      textBody:    plainText,
+      htmlBody:    emailHtml,
       date:        new Date(),
       messageId:   info.messageId,
       inReplyTo:   inReplyTo || "",

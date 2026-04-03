@@ -5,6 +5,106 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NodeMail — Compose</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+  <style>
+    /* Quill dark theme overrides */
+    .ql-toolbar.ql-snow {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-bottom: none;
+      border-radius: var(--radius) var(--radius) 0 0;
+      padding: 6px 8px;
+    }
+    .ql-toolbar .ql-stroke { stroke: var(--text-dim); }
+    .ql-toolbar .ql-fill { fill: var(--text-dim); }
+    .ql-toolbar .ql-picker-label { color: var(--text-dim); }
+    .ql-toolbar .ql-picker-options {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .ql-toolbar .ql-picker-item { color: var(--text-dim); }
+    .ql-toolbar .ql-picker-item:hover,
+    .ql-toolbar button:hover .ql-stroke,
+    .ql-toolbar button.ql-active .ql-stroke { stroke: var(--accent-h); }
+    .ql-toolbar button:hover .ql-fill,
+    .ql-toolbar button.ql-active .ql-fill { fill: var(--accent-h); }
+    .ql-toolbar button:hover,
+    .ql-toolbar button.ql-active,
+    .ql-toolbar .ql-picker-label:hover,
+    .ql-toolbar .ql-picker-label.ql-active { color: var(--accent-h); }
+
+    .ql-container.ql-snow {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0 0 var(--radius) var(--radius);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      color: var(--text);
+      min-height: 280px;
+    }
+    .ql-editor {
+      min-height: 260px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+    .ql-editor.ql-blank::before {
+      color: var(--text-muted);
+      font-style: normal;
+    }
+    .ql-editor a { color: var(--accent-h); }
+    .ql-editor blockquote {
+      border-left: 3px solid var(--border-lt);
+      padding-left: 12px;
+      color: var(--text-dim);
+    }
+    .ql-editor pre {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      color: var(--accent-h);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .ql-snow .ql-tooltip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      border-radius: var(--radius);
+    }
+    .ql-snow .ql-tooltip input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--radius);
+      padding: 4px 8px;
+    }
+    .ql-snow .ql-tooltip a { color: var(--accent-h); }
+    .ql-snow .ql-tooltip a.ql-action::after,
+    .ql-snow .ql-tooltip a.ql-remove::before { color: var(--accent-h); }
+
+    /* Signature separator */
+    .sig-separator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 14px 0 8px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+    }
+    .sig-separator::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -33,9 +133,11 @@
           </div>
         <% } %>
 
-        <form method="POST" action="/send" enctype="multipart/form-data">
+        <form method="POST" action="/send" enctype="multipart/form-data" id="composeForm">
           <input type="hidden" name="inReplyTo" value="<%= prefill.inReplyTo %>">
           <input type="hidden" name="references" value="<%= prefill.references %>">
+          <input type="hidden" name="htmlBody" id="htmlBodyInput">
+          <input type="hidden" name="body" id="textBodyInput">
 
           <div class="form-row">
             <label>From</label>
@@ -76,7 +178,7 @@
 
           <div class="form-row">
             <label>Message</label>
-            <textarea name="body" placeholder="Write your message..."><%= prefill.body %></textarea>
+            <div id="editor"></div>
           </div>
 
           <div class="form-row">
@@ -84,7 +186,7 @@
             <input type="file" name="attachments" multiple>
           </div>
 
-          <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="display:flex;gap:8px;margin-top:12px;">
             <button type="submit" class="btn btn-primary" <%= (typeof mailboxes !== 'undefined' && mailboxes.length === 0) ? 'disabled' : '' %>>
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg>
               Send
@@ -96,6 +198,52 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
   <script src="/js/app.js"></script>
+  <script>
+    // Initialize Quill editor
+    const quill = new Quill('#editor', {
+      theme: 'snow',
+      placeholder: 'Write your message...',
+      modules: {
+        toolbar: [
+          [{ 'font': [] }, { 'size': ['small', false, 'large', 'huge'] }],
+          ['bold', 'italic', 'underline', 'strike'],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'align': [] }],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          [{ 'indent': '-1' }, { 'indent': '+1' }],
+          ['blockquote', 'code-block'],
+          ['link', 'image'],
+          ['clean']
+        ]
+      }
+    });
+
+    // Pre-fill editor with reply/forward content
+    <% if (prefill.body && prefill.body.trim()) { %>
+      quill.clipboard.dangerouslyPasteHTML(
+        `<p><br></p><p><br></p>` +
+        `<p style="color:#888;"><%- prefill.body.replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\n/g,'</p><p style="color:#888;">').replace(/'/g,"\\'") %></p>`
+      );
+      // Move cursor to top
+      quill.setSelection(0, 0);
+    <% } %>
+
+    // On form submit, copy editor content to hidden fields
+    document.getElementById('composeForm').addEventListener('submit', function(e) {
+      const html = quill.root.innerHTML;
+      const text = quill.getText();
+
+      document.getElementById('htmlBodyInput').value = html;
+      document.getElementById('textBodyInput').value = text;
+
+      // Don't submit if editor is empty
+      if (text.trim().length === 0) {
+        e.preventDefault();
+        alert('Please write a message before sending.');
+      }
+    });
+  </script>
 </body>
 </html>
