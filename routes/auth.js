@@ -93,4 +93,46 @@ router.get("/logout", (req, res) => {
   req.session.destroy(() => res.redirect("/login"));
 });
 
+// ── Dovecot IMAP auth endpoint (called by checkpassword wrapper) ──
+router.post("/auth/dovecot", express.json(), async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ status: "fail" });
+
+  const Mailbox = require("../models/Mailbox");
+  const cleanUser = username.toLowerCase().trim();
+
+  let user = await User.findOne({ email: cleanUser });
+
+  // If not found by login email, try as a mailbox address
+  if (!user) {
+    const mb = await Mailbox.findOne({ address: cleanUser, active: true });
+    if (mb && mb.assignedUsers && mb.assignedUsers.length > 0) {
+      for (const uid of mb.assignedUsers) {
+        const u = await User.findById(uid);
+        if (u && await u.checkPassword(password)) { user = u; break; }
+      }
+    }
+  }
+
+  if (!user) return res.json({ status: "fail" });
+
+  // Verify password if matched by direct email
+  if (cleanUser === user.email) {
+    const valid = await user.checkPassword(password);
+    if (!valid) return res.json({ status: "fail" });
+  }
+
+  const domain = cleanUser.split("@")[1] || "default";
+  const localPart = cleanUser.split("@")[0];
+  const vmailDir = process.env.VMAIL_DIR || "/var/vmail";
+
+  res.json({
+    status: "ok",
+    uid: 5000,
+    gid: 5000,
+    home: `${vmailDir}/${domain}/${localPart}`,
+    mail: `maildir:${vmailDir}/${domain}/${localPart}/Maildir`,
+  });
+});
+
 module.exports = router;
