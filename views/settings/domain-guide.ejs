@@ -216,24 +216,120 @@
           </div>
         </div>
 
-        <!-- ─── STEP 6: Firewall ─── -->
-        <% if (inboundMode === 'smtp') { %>
+        <!-- ─── STEP 6: Autoconfig / Autodiscover ─── -->
         <div class="guide-step">
           <div class="step-number">6</div>
           <div class="step-content">
-            <h2>Firewall — Open port 25 for inbound SMTP</h2>
-            <p>Your server must accept incoming connections on port 25 to receive email.</p>
+            <h2>Autoconfig / Autodiscover — Mail client auto-detection</h2>
+            <p>These records let Thunderbird, Outlook, iOS, and Android auto-detect your mail server settings when adding an account.</p>
+
+            <div class="dns-record-box">
+              <table class="dns-table">
+                <thead>
+                  <tr><th>Type</th><th>Name / Host</th><th>Value</th><th>Proxy</th><th>TTL</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>CNAME</code></td>
+                    <td><code>autoconfig</code></td>
+                    <td><code><%= serverHostname %></code></td>
+                    <td>DNS only</td>
+                    <td><code>3600</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>CNAME</code></td>
+                    <td><code>autodiscover</code></td>
+                    <td><code><%= serverHostname %></code></td>
+                    <td>DNS only</td>
+                    <td><code>3600</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="guide-note">
+              <strong>Thunderbird</strong> checks <code>autoconfig.<%= domain.domain %></code><br>
+              <strong>Outlook</strong> checks <code>autodiscover.<%= domain.domain %></code><br>
+              Both must point to your NodeMail server so auto-detection works.
+              <% if (serverHostname !== 'localhost') { %>
+                Point them to <code><%= serverHostname %></code> where NodeMail is hosted.
+              <% } %>
+            </div>
+
+            <h3 style="font-size:13px;margin-top:20px;margin-bottom:8px;">SRV Records (for iOS / Android auto-detection)</h3>
+            <div class="dns-record-box">
+              <table class="dns-table">
+                <thead>
+                  <tr><th>Type</th><th>Name</th><th>Priority</th><th>Weight</th><th>Port</th><th>Target</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>SRV</code></td>
+                    <td><code>_imaps._tcp</code></td>
+                    <td><code>0</code></td>
+                    <td><code>1</code></td>
+                    <td><code><%= inboundPort === 25 ? '993' : '993' %></code></td>
+                    <td><code><%= serverHostname %></code></td>
+                  </tr>
+                  <tr>
+                    <td><code>SRV</code></td>
+                    <td><code>_submission._tcp</code></td>
+                    <td><code>0</code></td>
+                    <td><code>1</code></td>
+                    <td><code>587</code></td>
+                    <td><code><%= serverHostname %></code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="guide-note">
+              <strong>SRV records</strong> are used by mobile mail apps (Gmail app, iOS Mail) to automatically discover IMAP and SMTP servers.
+              These are optional but highly recommended for seamless client setup.
+            </div>
+
+            <% if (serverHostname !== 'localhost') { %>
+              <h3 style="font-size:13px;margin-top:20px;margin-bottom:8px;">Nginx for autoconfig subdomains (if using Nginx)</h3>
+              <div class="dns-record-box" style="background:var(--bg);">
+                <pre style="color:var(--text);font-size:12px;line-height:1.8;margin:0;"><span style="color:var(--text-muted);"># Add to Nginx config and get SSL with Certbot</span>
+server {
+    listen 80;
+    server_name autoconfig.<%= domain.domain %> autodiscover.<%= domain.domain %>;
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+<span style="color:var(--text-muted);"># Then:</span>
+certbot --nginx -d autoconfig.<%= domain.domain %> -d autodiscover.<%= domain.domain %></pre>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- ─── STEP 7: Firewall ─── -->
+        <% if (inboundMode === 'smtp') { %>
+        <div class="guide-step">
+          <div class="step-number">7</div>
+          <div class="step-content">
+            <h2>Firewall — Open mail ports</h2>
+            <p>Your server must accept incoming connections on the following ports.</p>
 
             <div class="dns-record-box" style="background: var(--bg);">
               <pre style="color: var(--text); font-size: 13px; line-height: 1.8; margin: 0;">
-<span style="color: var(--text-muted);"># UFW (Ubuntu/Debian)</span>
+<span style="color: var(--text-muted);"># Inbound SMTP (receiving email)</span>
 sudo ufw allow 25/tcp
 
-<span style="color: var(--text-muted);"># iptables</span>
-sudo iptables -A INPUT -p tcp --dport 25 -j ACCEPT
+<span style="color: var(--text-muted);"># SMTP Relay (mail client sending — Thunderbird/Outlook)</span>
+sudo ufw allow 587/tcp
 
-<span style="color: var(--text-muted);"># Check if port 25 is open</span>
-sudo ss -tlnp | grep :25</pre>
+<span style="color: var(--text-muted);"># IMAP SSL (mail client reading — if Dovecot is installed)</span>
+sudo ufw allow 993/tcp
+
+<span style="color: var(--text-muted);"># Check all ports are open</span>
+sudo ss -tlnp | grep -E ':25|:587|:993'</pre>
             </div>
 
             <div class="guide-note warning">
@@ -247,7 +343,7 @@ sudo ss -tlnp | grep :25</pre>
 
         <!-- ─── STEP 7: Verify ─── -->
         <div class="guide-step">
-          <div class="step-number"><%= inboundMode === 'smtp' ? '7' : '6' %></div>
+          <div class="step-number"><%= inboundMode === 'smtp' ? '8' : '7' %></div>
           <div class="step-content">
             <h2>Verify your configuration</h2>
             <p>After adding all DNS records, wait 5–30 minutes for propagation, then verify.</p>
@@ -273,7 +369,7 @@ sudo ss -tlnp | grep :25</pre>
 
         <!-- ─── Quick Reference ─── -->
         <div class="settings-card" style="margin-top: 32px;">
-          <h2>&#128203; Quick DNS Reference for <%= domain.domain %></h2>
+          <h2>Quick DNS Reference for <%= domain.domain %></h2>
           <table class="dns-table" style="font-size: 13px;">
             <thead>
               <tr><th>Record</th><th>Type</th><th>Name</th><th>Value</th></tr>
@@ -305,6 +401,30 @@ sudo ss -tlnp | grep :25</pre>
                 <td><code>TXT</code></td>
                 <td><code>_dmarc</code></td>
                 <td><code>v=DMARC1; p=none; rua=mailto:dmarc@<%= domain.domain %></code></td>
+              </tr>
+              <tr style="border-top:2px solid var(--border-lt);">
+                <td>Autoconfig</td>
+                <td><code>CNAME</code></td>
+                <td><code>autoconfig</code></td>
+                <td><code><%= serverHostname %></code> (DNS only)</td>
+              </tr>
+              <tr>
+                <td>Autodiscover</td>
+                <td><code>CNAME</code></td>
+                <td><code>autodiscover</code></td>
+                <td><code><%= serverHostname %></code> (DNS only)</td>
+              </tr>
+              <tr style="border-top:2px solid var(--border-lt);">
+                <td>IMAP SRV</td>
+                <td><code>SRV</code></td>
+                <td><code>_imaps._tcp</code></td>
+                <td><code>0 1 993 <%= serverHostname %></code></td>
+              </tr>
+              <tr>
+                <td>SMTP SRV</td>
+                <td><code>SRV</code></td>
+                <td><code>_submission._tcp</code></td>
+                <td><code>0 1 587 <%= serverHostname %></code></td>
               </tr>
             </tbody>
           </table>
