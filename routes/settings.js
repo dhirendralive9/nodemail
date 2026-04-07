@@ -178,18 +178,17 @@ router.get("/domains/:id/guide", async (req, res) => {
 //  MAILBOXES
 // ═══════════════════════════════════════════
 
+// ── List page (compact table) ──
 router.get("/mailboxes", async (req, res) => {
-  const mailboxes = await Mailbox.find().populate("assignedUsers", "email name").sort({ domain: 1, localPart: 1 }).lean();
+  const mailboxes = await Mailbox.find()
+    .populate("assignedUsers", "email name")
+    .sort({ domain: 1, localPart: 1 }).lean();
   const domains = await Domain.find({ verified: true }).sort("domain").lean();
-  const allDomains = await Domain.find().sort("domain").lean();
-  const users = await User.find().sort("email").lean();
   const sidebar = await getSidebar(req.session.userId);
 
   res.render("settings/mailboxes", {
     mailboxes,
     domains,
-    allDomains,
-    users,
     sidebar,
     session: req.session,
     error: req.query.error || null,
@@ -197,81 +196,84 @@ router.get("/mailboxes", async (req, res) => {
   });
 });
 
+// ── Create mailbox → redirect to its settings page ──
 router.post("/mailboxes/add", async (req, res) => {
-  const { localPart, domain, displayName, catchAll } = req.body;
-
-  if (!localPart || !domain) {
-    return res.redirect("/mailboxes?error=Email address and domain are required");
-  }
+  const { localPart, domain, displayName } = req.body;
+  if (!localPart || !domain) return res.redirect("/mailboxes?error=Address and domain required");
 
   const clean = localPart.toLowerCase().trim().replace(/[^a-z0-9._-]/g, "");
-  if (!clean) return res.redirect("/mailboxes?error=Invalid local part");
+  if (!clean) return res.redirect("/mailboxes?error=Invalid address");
 
   const address = `${clean}@${domain}`;
-
-  // Check domain exists
   const domainDoc = await Domain.findOne({ domain });
-  if (!domainDoc) return res.redirect("/mailboxes?error=Domain not found. Add it first.");
+  if (!domainDoc) return res.redirect("/mailboxes?error=Domain not found");
 
-  // Check duplicate
   const exists = await Mailbox.findOne({ address });
   if (exists) return res.redirect("/mailboxes?error=Mailbox already exists");
 
-  // If catch-all, unset any existing catch-all on this domain
-  if (catchAll === "on") {
-    await Mailbox.updateMany({ domain, catchAll: true }, { $set: { catchAll: false } });
-  }
-
-  await Mailbox.create({
-    address,
-    localPart: clean,
-    domain,
+  const mb = await Mailbox.create({
+    address, localPart: clean, domain,
     displayName: displayName || clean,
-    catchAll: catchAll === "on",
   });
 
-  res.redirect(`/mailboxes?success=Mailbox ${address} created`);
+  res.redirect(`/mailboxes/${mb._id}?success=Mailbox ${address} created. Configure it below.`);
 });
 
-router.post("/mailboxes/:id/assign", async (req, res) => {
-  const { userIds } = req.body;
-  const idArr = !userIds ? [] : (Array.isArray(userIds) ? userIds : [userIds]);
+// ── Individual mailbox settings page ──
+router.get("/mailboxes/:id", async (req, res) => {
+  const mb = await Mailbox.findById(req.params.id)
+    .populate("assignedUsers", "email name").lean();
+  if (!mb) return res.redirect("/mailboxes?error=Mailbox not found");
 
-  await Mailbox.findByIdAndUpdate(req.params.id, { assignedUsers: idArr });
-  res.redirect("/mailboxes?success=Users updated");
+  const users = await User.find().sort("email").lean();
+  const sidebar = await getSidebar(req.session.userId);
+
+  res.render("settings/mailbox-settings", {
+    mb, users, sidebar, session: req.session,
+    error: req.query.error || null,
+    success: req.query.success || null,
+  });
 });
 
-router.post("/mailboxes/:id/forward", async (req, res) => {
-  const { forwardTo, forwardKeepCopy, forwardEnabled } = req.body;
+// ── Save all settings for a mailbox ──
+router.post("/mailboxes/:id/save", async (req, res) => {
   const mb = await Mailbox.findById(req.params.id);
   if (!mb) return res.redirect("/mailboxes?error=Mailbox not found");
 
-  const addresses = forwardTo
-    ? forwardTo.split(",").map(a => a.trim().toLowerCase()).filter(a => a && a.includes("@"))
-    : [];
+  const { displayName, catchAll, userIds, forwardEnabled, forwardTo, forwardKeepCopy } = req.body;
+
+  mb.displayName = (displayName || mb.localPart).trim();
+
+  if (catchAll === "on" && !mb.catchAll) {
+    await Mailbox.updateMany(
+      { domain: mb.domain, catchAll: true, _id: { $ne: mb._id } },
+      { $set: { catchAll: false } }
+    );
+  }
+  mb.catchAll = catchAll === "on";
+
+  mb.assignedUsers = !userIds ? [] : (Array.isArray(userIds) ? userIds : [userIds]);
 
   mb.forwardEnabled = forwardEnabled === "on";
-  mb.forwardTo = addresses;
+  mb.forwardTo = forwardTo
+    ? forwardTo.split(",").map(a => a.trim().toLowerCase()).filter(a => a && a.includes("@"))
+    : [];
   mb.forwardKeepCopy = forwardKeepCopy === "on";
-  await mb.save();
 
-  res.redirect(`/mailboxes?success=Forwarding updated for ${mb.address}`);
+  await mb.save();
+  res.redirect(`/mailboxes/${mb._id}?success=Settings saved`);
 });
 
+// ── Toggle active ──
 router.post("/mailboxes/:id/toggle", async (req, res) => {
   const mb = await Mailbox.findById(req.params.id);
-  if (mb) {
-    mb.active = !mb.active;
-    await mb.save();
-  }
-  res.redirect("/mailboxes");
+  if (mb) { mb.active = !mb.active; await mb.save(); }
+  res.redirect(`/mailboxes/${mb ? mb._id : ''}`);
 });
 
+// ── Delete ──
 router.post("/mailboxes/:id/delete", async (req, res) => {
-  const mb = await Mailbox.findById(req.params.id);
-  if (mb) {
-    await mb.deleteOne();
-  }
+  await Mailbox.findByIdAndDelete(req.params.id);
   res.redirect("/mailboxes?success=Mailbox deleted");
 });
 
