@@ -236,8 +236,26 @@ router.get("/reply/:id", async (req, res) => {
   const subject = email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`;
   const quotedText = `\n\n--- On ${email.date.toUTCString()}, ${email.from} wrote ---\n${email.textBody}`;
 
-  // Try to auto-select the mailbox this email was sent to
-  const matchedMailbox = mailboxes.find(mb => email.to.includes(mb.address));
+  // Auto-select the right "From" mailbox:
+  // 1. Exact match on To field
+  // 2. Exact match on CC field
+  // 3. Catch-all on the same domain as the To address
+  // 4. First available mailbox
+  const allTo = [...(email.to || []), ...(email.cc || [])].map(a => a.toLowerCase());
+
+  let matchedMailbox = mailboxes.find(mb => allTo.includes(mb.address));
+
+  if (!matchedMailbox) {
+    // Try domain-based catch-all match
+    const toDomains = allTo.map(a => a.split("@")[1]).filter(Boolean);
+    matchedMailbox = mailboxes.find(mb => mb.catchAll && toDomains.includes(mb.domain));
+  }
+
+  if (!matchedMailbox && mailboxes.length > 0) {
+    // Fall back to first mailbox on the same domain
+    const toDomains = allTo.map(a => a.split("@")[1]).filter(Boolean);
+    matchedMailbox = mailboxes.find(mb => toDomains.includes(mb.domain));
+  }
 
   res.render("emails/compose", {
     sidebar,
@@ -251,7 +269,7 @@ router.get("/reply/:id", async (req, res) => {
       body: quotedText,
       inReplyTo: email.messageId,
       references: [...email.references, email.messageId].join(" "),
-      fromAddress: matchedMailbox ? matchedMailbox.address : "",
+      fromAddress: matchedMailbox ? matchedMailbox.address : (mailboxes.length > 0 ? mailboxes[0].address : ""),
     },
   });
 });
