@@ -5,6 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NodeMail — Sign In</title>
   <link rel="stylesheet" href="/css/style.css">
+  <% if (turnstileEnabled) { %>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <% } %>
+  <style>
+    .cf-turnstile {
+      margin: 16px 0 4px;
+    }
+    /* Dark theme override for turnstile iframe */
+    .cf-turnstile iframe {
+      border-radius: var(--radius) !important;
+    }
+  </style>
 </head>
 <body>
   <div class="login-wrap">
@@ -25,7 +37,12 @@
           <label>Password</label>
           <input type="password" name="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required>
         </div>
-        <div class="form-row" style="margin-top: 24px;">
+
+        <% if (turnstileEnabled) { %>
+          <div class="cf-turnstile" data-sitekey="<%= turnstileSiteKey %>" data-theme="dark"></div>
+        <% } %>
+
+        <div class="form-row" style="margin-top: 20px;">
           <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:11px;">SIGN IN</button>
         </div>
       </form>
