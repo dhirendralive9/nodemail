@@ -264,6 +264,17 @@
               <li>Set authentication to <strong>Normal password</strong> for both</li>
               <li>Click <strong>Re-test</strong> then <strong>Done</strong></li>
             </ol>
+            <% if (mailboxes.length > 1) { %>
+              <div class="guide-note" style="margin-top:16px;">
+                <strong>Multiple mailboxes:</strong> You have <%= mailboxes.length %> mailboxes. To send from any of them:
+                <br>Go to <strong>Account Settings</strong> &rarr; select your account &rarr; <strong>Manage Identities</strong> &rarr; <strong>Add</strong>
+                <br>Add each mailbox address as a separate identity:
+                <% mailboxes.forEach(function(mb) { %>
+                  <br>&bull; <code><%= mb.address %></code><%= mb.displayName ? ' (' + mb.displayName + ')' : '' %>
+                <% }); %>
+                <br>When composing, the "From" dropdown will show all identities.
+              </div>
+            <% } %>
           </div>
 
           <div class="client-panel" id="tab-outlook">
@@ -280,6 +291,17 @@
               </li>
               <li>Enter your NodeMail password and click <strong>Connect</strong></li>
             </ol>
+            <% if (mailboxes.length > 1) { %>
+              <div class="guide-note" style="margin-top:16px;">
+                <strong>Multiple mailboxes:</strong> In Outlook desktop:
+                <br>Go to <strong>File</strong> &rarr; <strong>Account Settings</strong> &rarr; select your account &rarr; <strong>Change</strong> &rarr; <strong>More Settings</strong>
+                <br>Under the <strong>General</strong> tab, you can change the reply address. For multiple From addresses, add each as a separate account using the same IMAP/SMTP settings but with a different email address:
+                <% mailboxes.forEach(function(mb) { %>
+                  <br>&bull; <code><%= mb.address %></code>
+                <% }); %>
+                <br>Use the same login credentials (<code><%= session.userEmail %></code>) for all accounts.
+              </div>
+            <% } %>
           </div>
 
           <div class="client-panel" id="tab-apple">
@@ -296,6 +318,14 @@
               <li>Username: <strong><%= session.userEmail %></strong> (for both incoming and outgoing)</li>
               <li>Tap <strong>Next</strong> — iOS will auto-detect ports and SSL settings</li>
             </ol>
+            <% if (mailboxes.length > 1) { %>
+              <div class="guide-note" style="margin-top:16px;">
+                <strong>Multiple mailboxes:</strong>
+                <br><strong>Mac:</strong> Open Mail &rarr; <strong>Settings</strong> &rarr; <strong>Accounts</strong> &rarr; select your account &rarr; <strong>Email Addresses</strong> field. Add aliases separated by commas:
+                <br><code><%= mailboxes.map(function(mb) { return mb.address; }).join(', ') %></code>
+                <br><strong>iOS:</strong> Go to <strong>Settings</strong> &rarr; <strong>Mail</strong> &rarr; <strong>Accounts</strong> &rarr; select the account &rarr; <strong>Account</strong> &rarr; <strong>Email</strong> &rarr; <strong>Add Another Email</strong>. Add each address. When composing, tap the From field to switch.
+              </div>
+            <% } %>
           </div>
 
           <div class="client-panel" id="tab-android">
@@ -312,6 +342,17 @@
               </li>
               <li>Enter your NodeMail password for both and tap <strong>Next</strong></li>
             </ol>
+            <% if (mailboxes.length > 1) { %>
+              <div class="guide-note" style="margin-top:16px;">
+                <strong>Multiple mailboxes:</strong> Gmail app doesn't support aliases natively.
+                <br>Add each mailbox as a <strong>separate account</strong> using the same login (<code><%= session.userEmail %></code>) but with a different email address:
+                <% mailboxes.forEach(function(mb) { %>
+                  <br>&bull; <code><%= mb.address %></code>
+                <% }); %>
+                <br>When composing, switch between accounts using the From field.
+                <br><br><strong>K-9 Mail / FairEmail:</strong> These support identities natively. Go to Account Settings &rarr; Identities &rarr; add each mailbox address.
+              </div>
+            <% } %>
           </div>
         </div>
 
