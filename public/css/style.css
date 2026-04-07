@@ -282,25 +282,36 @@ code, .mono {
 .email-list { flex: 1; overflow-y: auto; }
 
 .email-row {
-  display: grid;
-  grid-template-columns: 28px 28px 150px 70px 1fr 90px;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 20px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.08s;
   font-size: 13px;
+  height: 44px;
 }
 .email-row:hover { background: var(--bg-hover); }
-.email-row.unread { border-left: 2px solid var(--accent); }
-.email-row.unread .email-from { color: var(--text); font-weight: 500; }
-.email-row.unread .email-subject .subj-text { color: var(--text); font-weight: 500; }
+.email-row.unread { background: rgba(217,119,6,0.04); }
+.email-row.unread .email-from { color: var(--text); font-weight: 600; }
+.email-row.unread .subj-text { color: var(--text); font-weight: 500; }
 
+.email-check {
+  width: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
 .email-row input[type="checkbox"] {
   accent-color: var(--accent);
   width: 14px;
   height: 14px;
+}
+.email-star-wrap {
+  width: 28px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 .email-star {
   cursor: pointer;
@@ -315,47 +326,66 @@ code, .mono {
 .email-star.starred { color: var(--accent-h); }
 .email-star.starred svg { fill: var(--accent-h); }
 
+.email-sender {
+  width: 180px;
+  flex-shrink: 0;
+  overflow: hidden;
+  padding-right: 10px;
+}
 .email-from {
+  display: block;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
+}
+
+.email-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  padding-right: 10px;
 }
 .email-to-badge {
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--accent-h);
   background: var(--accent-dim);
-  padding: 1px 6px;
+  padding: 2px 6px;
   border-radius: 2px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 .email-subject {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-muted);
 }
 .email-subject .subj-text { color: var(--text-dim); }
+.email-att-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  opacity: 0.5;
+  margin-left: 2px;
+}
+.email-att-badge svg { width: 12px; height: 12px; }
+
 .email-date {
+  width: 60px;
+  flex-shrink: 0;
   text-align: right;
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 11px;
   white-space: nowrap;
 }
-.email-att-badge {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 6px;
-  opacity: 0.5;
-}
-.email-att-badge svg { width: 12px; height: 12px; }
 
 /* ═══════════════════════════════════════════
    PAGINATION
@@ -967,12 +997,12 @@ code, .mono {
   .sidebar-toggle { display: flex; }
 
   .email-row {
-    grid-template-columns: 28px 1fr 70px;
-    padding: 8px 14px;
+    padding: 0 14px;
+    height: 48px;
   }
-  .email-from { display: none; }
+  .email-sender { width: 120px; }
+  .email-star-wrap { display: none; }
   .email-to-badge { display: none; }
-  .email-row .email-star { display: none; }
 
   .toolbar { padding: 8px 14px; }
   .search-box input { width: 140px; }
@@ -988,8 +1018,8 @@ code, .mono {
 }
 
 @media (max-width: 480px) {
-  .email-row { grid-template-columns: 1fr 60px; gap: 4px; }
-  .email-row input[type="checkbox"] { display: none; }
+  .email-sender { width: 90px; }
+  .email-check { display: none; }
   .dns-record-box { padding: 8px; }
   .dns-table { font-size: 10px; }
 }

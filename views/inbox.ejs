@@ -52,24 +52,31 @@
 
           <% emails.forEach(function(e) { %>
             <div class="email-row <%= e.read ? '' : 'unread' %>" onclick="if(event.target.type!=='checkbox')window.location='/email/<%= e._id %>'">
-              <input type="checkbox" name="ids" value="<%= e._id %>" onclick="event.stopPropagation()">
-              <form method="POST" action="/email/<%= e._id %>/star" style="display:inline" onclick="event.stopPropagation()">
-                <button type="submit" class="email-star <%= e.starred ? 'starred' : '' %>">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="<%= e.starred ? 'currentColor' : 'none' %>" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                </button>
-              </form>
-              <span class="email-from"><%= e.fromName || e.from %></span>
-              <span class="email-to-badge"><%= e.to && e.to[0] ? e.to[0].split('@')[0] : '' %></span>
-              <span class="email-subject">
-                <span class="subj-text"><%= e.subject %></span>
+              <div class="email-check">
+                <input type="checkbox" name="ids" value="<%= e._id %>" onclick="event.stopPropagation()">
+              </div>
+              <div class="email-star-wrap">
+                <form method="POST" action="/email/<%= e._id %>/star" style="display:inline" onclick="event.stopPropagation()">
+                  <button type="submit" class="email-star <%= e.starred ? 'starred' : '' %>">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="<%= e.starred ? 'currentColor' : 'none' %>" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </button>
+                </form>
+              </div>
+              <div class="email-sender">
+                <span class="email-from"><%= e.fromName || e.from %></span>
+              </div>
+              <div class="email-content">
+                <span class="email-to-badge"><%= e.to && e.to[0] ? e.to[0].split('@')[0] : '' %></span>
+                <span class="email-subject">
+                  <span class="subj-text"><%= e.subject %></span>
+                </span>
                 <% if (e.attachments && e.attachments.length > 0) { %>
                   <span class="email-att-badge">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                    <%= e.attachments.length %>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                   </span>
                 <% } %>
-              </span>
-              <span class="email-date"><%= new Date(e.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) %></span>
+              </div>
+              <div class="email-date"><%= new Date(e.date).toLocaleDateString('en-US', { month:'short', day:'numeric' }) %></div>
             </div>
           <% }); %>
         </div>
