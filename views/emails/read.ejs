@@ -48,7 +48,28 @@
             <div><strong>CC</strong> <%= email.cc.join(', ') %></div>
           <% } %>
           <div><strong>Date</strong> <%= new Date(email.date).toLocaleString() %></div>
+          <% if (email.authResults && (email.authResults.spf || email.authResults.dkim || email.authResults.dmarc)) { %>
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <strong>Auth</strong>
+              <% if (email.authResults.spf) { %>
+                <span class="auth-badge <%= email.authResults.spf === 'pass' ? 'pass' : (email.authResults.spf === 'none' || email.authResults.spf === 'skip' ? 'neutral' : 'fail') %>">SPF: <%= email.authResults.spf %></span>
+              <% } %>
+              <% if (email.authResults.dkim) { %>
+                <span class="auth-badge <%= email.authResults.dkim === 'pass' ? 'pass' : (email.authResults.dkim === 'none' || email.authResults.dkim === 'skip' ? 'neutral' : 'fail') %>">DKIM: <%= email.authResults.dkim %></span>
+              <% } %>
+              <% if (email.authResults.dmarc) { %>
+                <span class="auth-badge <%= email.authResults.dmarc === 'pass' ? 'pass' : (email.authResults.dmarc === 'none' || email.authResults.dmarc === 'skip' ? 'neutral' : 'fail') %>">DMARC: <%= email.authResults.dmarc %></span>
+              <% } %>
+            </div>
+          <% } %>
         </div>
+
+        <% if (email.spam) { %>
+          <div style="background:var(--red-dim);border:1px solid var(--red);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--font-mono);color:#fca5a5;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            This message failed authentication checks and was flagged as spam.
+          </div>
+        <% } %>
 
         <div class="email-body">
           <% if (email.htmlBody && email.htmlBody.trim()) { %>

@@ -389,6 +389,20 @@ code, .mono {
   white-space: nowrap;
 }
 
+/* ── Auth badges (SPF/DKIM/DMARC) ── */
+.auth-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+.auth-badge.pass { background: var(--green-dim); color: #86efac; }
+.auth-badge.fail { background: var(--red-dim); color: #fca5a5; }
+.auth-badge.neutral { background: var(--bg-hover); color: var(--text-muted); }
+
 /* ═══════════════════════════════════════════
    PAGINATION
    ═══════════════════════════════════════════ */

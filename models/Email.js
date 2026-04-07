@@ -24,6 +24,12 @@ const emailSchema = new mongoose.Schema({
   references: [{ type: String }],
   read:       { type: Boolean, default: false },
   starred:    { type: Boolean, default: false },
+  spam:       { type: Boolean, default: false },
+  authResults: {
+    spf:   { type: String, default: "" },  // pass, fail, softfail, none, error
+    dkim:  { type: String, default: "" },  // pass, fail, none, error
+    dmarc: { type: String, default: "" },  // pass, fail, none, error
+  },
   attachments:[ attachmentSchema ],
 });
 

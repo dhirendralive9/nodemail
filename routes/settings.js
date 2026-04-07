@@ -13,7 +13,7 @@ router.use(requireAuth);
 
 // ── Helper: sidebar ──
 async function getSidebar(userId) {
-  const systemFolders = ["inbox", "sent", "drafts", "trash", "starred"];
+  const systemFolders = ["inbox", "sent", "drafts", "trash", "spam", "starred"];
   const counts = {};
   for (const f of systemFolders) {
     if (f === "starred") {
