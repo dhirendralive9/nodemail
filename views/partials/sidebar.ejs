@@ -66,8 +66,12 @@
   </a>
 
   <div class="sidebar-bottom">
-    <strong><%= session.userEmail %></strong><br>
-    <a href="/logout">Sign out</a>
+    <a href="/profile" style="display:flex;align-items:center;gap:6px;margin-bottom:6px;color:var(--text-dim);">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <strong><%= session.userName || session.userEmail %></strong>
+    </a>
+    <span style="font-size:10px;color:var(--text-muted);"><%= session.userEmail %></span><br>
+    <a href="/logout" style="font-size:11px;">Sign out</a>
   </div>
 </aside>
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>

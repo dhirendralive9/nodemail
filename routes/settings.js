@@ -366,4 +366,66 @@ router.get("/client-setup", async (req, res) => {
   });
 });
 
+// ═══════════════════════════════════════════
+//  PROFILE
+// ═══════════════════════════════════════════
+
+router.get("/profile", async (req, res) => {
+  const user = await User.findById(req.session.userId).lean();
+  if (!user) return res.redirect("/login");
+
+  const mailboxes = await Mailbox.find({ assignedUsers: req.session.userId, active: true })
+    .sort({ domain: 1, localPart: 1 }).lean();
+  const sidebar = await getSidebar(req.session.userId);
+
+  res.render("settings/profile", {
+    user,
+    mailboxes,
+    sidebar,
+    session: req.session,
+    error: req.query.error || null,
+    success: req.query.success || null,
+  });
+});
+
+router.post("/profile/update", async (req, res) => {
+  const { name } = req.body;
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.redirect("/login");
+
+  user.name = (name || "").trim();
+  await user.save();
+
+  // Update session
+  req.session.userName = user.name || user.email;
+
+  res.redirect("/profile?success=Profile updated");
+});
+
+router.post("/profile/password", async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.redirect("/login");
+
+  // Validate current password
+  const valid = await user.checkPassword(currentPassword);
+  if (!valid) {
+    return res.redirect("/profile?error=Current password is incorrect");
+  }
+
+  // Validate new password
+  if (!newPassword || newPassword.length < 6) {
+    return res.redirect("/profile?error=New password must be at least 6 characters");
+  }
+
+  if (newPassword !== confirmPassword) {
+    return res.redirect("/profile?error=New passwords do not match");
+  }
+
+  user.password = newPassword;
+  await user.save();
+
+  res.redirect("/profile?success=Password changed successfully");
+});
+
 module.exports = router;
