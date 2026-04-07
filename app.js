@@ -16,12 +16,22 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// ── Static ──
-app.use(express.static(path.join(__dirname, "public")));
+// ── Static assets with cache headers ──
+app.use(express.static(path.join(__dirname, "public"), {
+  maxAge: "30d",
+  immutable: true,
+}));
 
 // ── View engine ──
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+
+// ── Cache-bust version (changes on each restart / deploy) ──
+const ASSET_VERSION = Date.now().toString(36);
+app.use((req, res, next) => {
+  res.locals.v = ASSET_VERSION;
+  next();
+});
 
 // ── Sessions ──
 app.use(session({

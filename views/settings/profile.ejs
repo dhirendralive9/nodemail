@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NodeMail — Profile</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css?v=<%= v %>">
   <style>
     .profile-header {
       display: flex;
@@ -225,7 +225,7 @@
     </div>
   </div>
 
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js?v=<%= v %>"></script>
   <script>
     function checkPwMatch() {
       const pw = document.getElementById('newPw').value;
