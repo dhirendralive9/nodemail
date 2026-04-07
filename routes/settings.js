@@ -322,4 +322,48 @@ router.post("/users/:id/delete", async (req, res) => {
   res.redirect("/users?success=User deleted");
 });
 
+// ═══════════════════════════════════════════
+//  CLIENT SETUP (Thunderbird/Outlook/iOS)
+// ═══════════════════════════════════════════
+
+router.get("/client-setup", async (req, res) => {
+  const sidebar = await getSidebar(req.session.userId);
+  const mailboxes = await Mailbox.find({ assignedUsers: req.session.userId, active: true })
+    .sort({ domain: 1, localPart: 1 }).lean();
+
+  // If admin, show all mailboxes
+  const firstUser = await User.findOne().sort({ createdAt: 1 });
+  const isAdmin = firstUser && firstUser._id.toString() === req.session.userId.toString();
+  const allMailboxes = isAdmin
+    ? await Mailbox.find({ active: true }).sort({ domain: 1, localPart: 1 }).lean()
+    : mailboxes;
+
+  const hostname = process.env.MAIL_HOSTNAME || os.hostname();
+
+  let serverIP = process.env.SERVER_IP || "";
+  if (!serverIP) {
+    try {
+      const ifaces = os.networkInterfaces();
+      for (const name of Object.keys(ifaces)) {
+        for (const iface of ifaces[name]) {
+          if (iface.family === "IPv4" && !iface.internal) { serverIP = iface.address; break; }
+        }
+        if (serverIP) break;
+      }
+    } catch (_) {}
+  }
+
+  res.render("settings/client-setup", {
+    sidebar,
+    session: req.session,
+    mailboxes: allMailboxes,
+    hostname,
+    serverIP,
+    smtpRelayPort: process.env.SMTP_RELAY_PORT || "587",
+    imapHost: process.env.IMAP_HOST || hostname,
+    imapPort: process.env.IMAP_PORT || "993",
+    inboundSmtpPort: process.env.INBOUND_SMTP_PORT || "25",
+  });
+});
+
 module.exports = router;

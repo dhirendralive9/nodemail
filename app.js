@@ -62,6 +62,12 @@ async function start() {
     console.log("Inbound mode: webhook (POST to /webhook/inbound)");
   }
 
+  // Start outbound SMTP relay for mail clients (Thunderbird/Outlook)
+  if (process.env.SMTP_RELAY_PORT) {
+    const { startOutboundSMTP } = require("./lib/outboundSmtp");
+    startOutboundSMTP(Number(process.env.SMTP_RELAY_PORT));
+  }
+
   // Start Express
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
