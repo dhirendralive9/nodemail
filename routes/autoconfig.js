@@ -59,6 +59,7 @@ router.post("/autodiscover/autodiscover.xml", express.text({ type: "*/xml" }), (
   let emailAddress = "";
   const match = (req.body || "").match(/<EMailAddress>(.*?)<\/EMailAddress>/i);
   if (match) emailAddress = match[1];
+  const localPart = emailAddress.split("@")[0] || "";
 
   res.set("Content-Type", "application/xml");
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -91,6 +92,7 @@ router.post("/autodiscover/autodiscover.xml", express.text({ type: "*/xml" }), (
 // Outlook also tries GET
 router.get("/autodiscover/autodiscover.xml", (req, res) => {
   const emailAddress = req.query.Email || req.query.email || "";
+  const localPart = emailAddress.split("@")[0] || "";
   res.set("Content-Type", "application/xml");
   res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Autodiscover xmlns="http://schemas.microsoft.com/exchange/autodiscover/responseschema/2006">
