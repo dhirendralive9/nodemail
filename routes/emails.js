@@ -6,6 +6,8 @@ const fs      = require("fs");
 const Email   = require("../models/Email");
 const Folder  = require("../models/Folder");
 const Mailbox = require("../models/Mailbox");
+const Domain  = require("../models/Domain");
+const User    = require("../models/User");
 const { requireAuth } = require("../lib/auth");
 const { sendMail }    = require("../lib/mailer");
 
@@ -311,10 +313,18 @@ router.post("/send", upload.array("attachments", 10), async (req, res) => {
   }
 
   // Build nodemailer attachments
-  const attachments = (req.files || []).map((f) => ({
+  const fileAtts = (req.files || []).map((f) => ({
     filename: f.originalname,
     path: f.path,
     contentType: f.mimetype,
+  }));
+
+  // Saved attachment records for DB
+  const savedAtts = (req.files || []).map((f) => ({
+    filename: f.originalname,
+    contentType: f.mimetype,
+    size: f.size,
+    path: f.path,
   }));
 
   // Use rich HTML from Quill if available, fall back to plain text
@@ -323,44 +333,139 @@ router.post("/send", upload.array("attachments", 10), async (req, res) => {
     : `<div style="white-space:pre-wrap;font-family:sans-serif;font-size:14px;color:#222;">${(body || '').replace(/</g,"&lt;").replace(/\n/g,"<br>")}</div>`;
 
   const plainText = body || '';
+  const msgSubject = subject || "(no subject)";
+  const now = new Date();
+  const refArr = references ? references.split(" ").filter(Boolean) : [];
+
+  // Parse all recipient addresses
+  const allToAddrs = to.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+  const allCcAddrs = cc ? cc.split(",").map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+  const allBccAddrs = bcc ? bcc.split(",").map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+  const allRecipients = [...allToAddrs, ...allCcAddrs, ...allBccAddrs];
+
+  // Get all local domains
+  const localDomains = await Domain.find().distinct("domain");
+  const localDomainSet = new Set(localDomains);
+
+  // Split recipients into local and external
+  const localAddrs = [];
+  const externalAddrs = [];
+
+  for (const addr of allRecipients) {
+    const domain = addr.split("@")[1];
+    if (domain && localDomainSet.has(domain)) {
+      localAddrs.push(addr);
+    } else {
+      externalAddrs.push(addr);
+    }
+  }
+
+  let messageId = `<${Date.now()}.${Math.random().toString(36).slice(2)}@${fromAddr.split("@")[1]}>`;
 
   try {
-    const info = await sendMail({
-      from: `"${fromName}" <${fromAddr}>`,
-      to,
-      cc: cc || undefined,
-      bcc: bcc || undefined,
-      subject: subject || "(no subject)",
-      text: plainText,
-      html: emailHtml,
-      inReplyTo: inReplyTo || undefined,
-      references: references ? references.split(" ").filter(Boolean) : undefined,
-      attachments,
-    });
+    // ── Deliver locally to matching mailboxes ──
+    if (localAddrs.length > 0) {
+      const deliveredTo = new Set();
 
-    // Save to Sent folder
-    const savedAtts = (req.files || []).map((f) => ({
-      filename: f.originalname,
-      contentType: f.mimetype,
-      size: f.size,
-      path: f.path,
-    }));
+      for (const recipientAddr of localAddrs) {
+        const [localPart, domainPart] = recipientAddr.split("@");
 
+        // Find mailbox
+        let mb = await Mailbox.findOne({ address: recipientAddr, active: true });
+        if (!mb) {
+          mb = await Mailbox.findOne({ domain: domainPart, catchAll: true, active: true });
+        }
+        if (!mb) continue;
+
+        // Get target users
+        let targetUserIds = [];
+        if (mb.assignedUsers && mb.assignedUsers.length > 0) {
+          targetUserIds = mb.assignedUsers.map(id => id.toString());
+        } else {
+          const adminUser = await User.findOne().sort({ createdAt: 1 });
+          if (adminUser) targetUserIds = [adminUser._id.toString()];
+        }
+
+        for (const userId of targetUserIds) {
+          if (deliveredTo.has(userId)) continue;
+          deliveredTo.add(userId);
+
+          await Email.create({
+            owner:       userId,
+            folder:      "inbox",
+            from:        fromAddr,
+            fromName:    fromName,
+            to:          allToAddrs,
+            cc:          allCcAddrs,
+            subject:     msgSubject,
+            textBody:    plainText,
+            htmlBody:    emailHtml,
+            date:        now,
+            messageId:   messageId,
+            inReplyTo:   inReplyTo || "",
+            references:  refArr,
+            read:        false,
+            attachments: savedAtts,
+          });
+        }
+
+        // Handle forwarding for local mailbox
+        if (mb.forwardEnabled && mb.forwardTo && mb.forwardTo.length > 0) {
+          const { smartForward } = require("../lib/smartForward");
+          try {
+            await smartForward({
+              mailbox: mb, fromAddr, fromName,
+              subject: msgSubject, textBody: plainText, htmlBody: emailHtml,
+              messageId, date: now, attachments: fileAtts, savedAtts,
+            });
+          } catch (fwdErr) {
+            console.error("Forward error:", fwdErr.message);
+          }
+        }
+      }
+
+      console.log(`Local delivery: ${fromAddr} → ${localAddrs.join(", ")}`);
+    }
+
+    // ── Send externally via SMTP provider ──
+    if (externalAddrs.length > 0) {
+      const externalTo = externalAddrs.filter(a => allToAddrs.includes(a)).join(", ");
+      const externalCc = externalAddrs.filter(a => allCcAddrs.includes(a)).join(", ");
+      const externalBcc = externalAddrs.filter(a => allBccAddrs.includes(a)).join(", ");
+
+      const info = await sendMail({
+        from: `"${fromName}" <${fromAddr}>`,
+        to: externalTo || undefined,
+        cc: externalCc || undefined,
+        bcc: externalBcc || undefined,
+        subject: msgSubject,
+        text: plainText,
+        html: emailHtml,
+        inReplyTo: inReplyTo || undefined,
+        references: refArr.length > 0 ? refArr : undefined,
+        attachments: fileAtts,
+      });
+
+      messageId = info.messageId || messageId;
+      console.log(`External delivery: ${fromAddr} → ${externalAddrs.join(", ")} [${messageId}]`);
+    }
+
+    // ── Save to sender's Sent folder ──
     await Email.create({
       owner:       req.session.userId,
       folder:      "sent",
       from:        fromAddr,
       fromName:    fromName,
-      to:          to.split(",").map(s => s.trim()),
-      cc:          cc ? cc.split(",").map(s => s.trim()) : [],
-      bcc:         bcc ? bcc.split(",").map(s => s.trim()) : [],
-      subject:     subject || "(no subject)",
+      to:          allToAddrs,
+      cc:          allCcAddrs,
+      bcc:         allBccAddrs,
+      subject:     msgSubject,
       textBody:    plainText,
       htmlBody:    emailHtml,
-      date:        new Date(),
-      messageId:   info.messageId,
+      date:        now,
+      messageId:   messageId,
       inReplyTo:   inReplyTo || "",
-      references:  references ? references.split(" ").filter(Boolean) : [],
+      references:  refArr,
       read:        true,
       attachments: savedAtts,
     });
