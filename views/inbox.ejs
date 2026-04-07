@@ -59,6 +59,7 @@
                 </button>
               </form>
               <span class="email-from"><%= e.fromName || e.from %></span>
+              <span class="email-to-badge"><%= e.to && e.to[0] ? e.to[0].split('@')[0] : '' %></span>
               <span class="email-subject">
                 <span class="subj-text"><%= e.subject %></span>
                 <% if (e.attachments && e.attachments.length > 0) { %>

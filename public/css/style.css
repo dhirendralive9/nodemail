@@ -283,7 +283,7 @@ code, .mono {
 
 .email-row {
   display: grid;
-  grid-template-columns: 28px 28px 160px 1fr 90px;
+  grid-template-columns: 28px 28px 150px 70px 1fr 90px;
   align-items: center;
   gap: 6px;
   padding: 8px 20px;
@@ -322,6 +322,18 @@ code, .mono {
   color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: 12px;
+}
+.email-to-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent-h);
+  background: var(--accent-dim);
+  padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
 }
 .email-subject {
   white-space: nowrap;
@@ -959,6 +971,7 @@ code, .mono {
     padding: 8px 14px;
   }
   .email-from { display: none; }
+  .email-to-badge { display: none; }
   .email-row .email-star { display: none; }
 
   .toolbar { padding: 8px 14px; }
