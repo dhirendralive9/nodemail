@@ -9,13 +9,21 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <% } %>
   <style>
-    .cf-turnstile {
-      margin: 16px 0 4px;
+    .cf-turnstile { margin: 16px 0 4px; }
+    .banned-msg {
+      background: var(--red-dim);
+      border: 1px solid var(--red);
+      color: #fca5a5;
+      padding: 14px;
+      border-radius: var(--radius);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      text-align: center;
+      margin-bottom: 16px;
+      line-height: 1.6;
     }
-    /* Dark theme override for turnstile iframe */
-    .cf-turnstile iframe {
-      border-radius: var(--radius) !important;
-    }
+    .banned-msg svg { vertical-align: -3px; margin-right: 4px; }
+    form.disabled input, form.disabled button { opacity: 0.3; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -24,11 +32,16 @@
       <h1>NODEMAIL</h1>
       <p class="sub">authenticate to continue</p>
 
-      <% if (error) { %>
+      <% if (typeof banned !== 'undefined' && banned) { %>
+        <div class="banned-msg">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          <%= error %>
+        </div>
+      <% } else if (error) { %>
         <div class="error-msg"><%= error %></div>
       <% } %>
 
-      <form method="POST" action="/login">
+      <form method="POST" action="/login" class="<%= (typeof banned !== 'undefined' && banned) ? 'disabled' : '' %>">
         <div class="form-row">
           <label>Email</label>
           <input type="email" name="email" placeholder="you@domain.com" required autofocus>
@@ -38,12 +51,13 @@
           <input type="password" name="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required>
         </div>
 
-        <% if (turnstileEnabled) { %>
+        <% if (turnstileEnabled && !(typeof banned !== 'undefined' && banned)) { %>
           <div class="cf-turnstile" data-sitekey="<%= turnstileSiteKey %>" data-theme="dark"></div>
         <% } %>
 
         <div class="form-row" style="margin-top: 20px;">
-          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:11px;">SIGN IN</button>
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; padding:11px;"
+            <%= (typeof banned !== 'undefined' && banned) ? 'disabled' : '' %>>SIGN IN</button>
         </div>
       </form>
     </div>

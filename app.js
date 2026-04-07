@@ -9,6 +9,9 @@ const User = require("./models/User");
 
 const app = express();
 
+// ── Trust proxy (Nginx/Cloudflare) for correct req.ip ──
+app.set("trust proxy", true);
+
 // ── Security ──
 app.use(helmet({ contentSecurityPolicy: false }));
 

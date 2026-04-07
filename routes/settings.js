@@ -428,4 +428,60 @@ router.post("/profile/password", async (req, res) => {
   res.redirect("/profile?success=Password changed successfully");
 });
 
+// ═══════════════════════════════════════════
+//  SECURITY — Login Logs (admin only)
+// ═══════════════════════════════════════════
+
+router.get("/security", async (req, res) => {
+  // Admin check
+  const firstUser = await User.findOne().sort({ createdAt: 1 });
+  const isAdmin = firstUser && firstUser._id.toString() === req.session.userId.toString();
+  if (!isAdmin) return res.redirect("/?error=Admin access required");
+
+  const LoginLog = require("../models/LoginLog");
+  const { MAX_FAILURES, BAN_WINDOW_MIN, BAN_DURATION_MIN } = require("../lib/ipban");
+
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = 50;
+  const skip = (page - 1) * limit;
+  const filter = req.query.filter || "all"; // all, failed, success, banned
+
+  let query = {};
+  if (filter === "failed")  query.success = false;
+  if (filter === "success") query.success = true;
+  if (filter === "banned")  query.reason = "ip_banned";
+
+  const total = await LoginLog.countDocuments(query);
+  const logs = await LoginLog.find(query)
+    .sort({ date: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const pages = Math.ceil(total / limit);
+
+  // Stats
+  const now = new Date();
+  const last24h = new Date(now - 24 * 60 * 60 * 1000);
+  const last7d  = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+  const stats = {
+    total24h:    await LoginLog.countDocuments({ date: { $gte: last24h } }),
+    failed24h:   await LoginLog.countDocuments({ date: { $gte: last24h }, success: false }),
+    success24h:  await LoginLog.countDocuments({ date: { $gte: last24h }, success: true }),
+    banned24h:   await LoginLog.countDocuments({ date: { $gte: last24h }, reason: "ip_banned" }),
+    uniqueIPs7d: (await LoginLog.distinct("ip", { date: { $gte: last7d } })).length,
+  };
+
+  const sidebar = await getSidebar(req.session.userId);
+
+  res.render("settings/security", {
+    logs, stats, page, pages, total, filter,
+    sidebar, session: req.session,
+    maxFailures: MAX_FAILURES,
+    banWindow: BAN_WINDOW_MIN,
+    banDuration: BAN_DURATION_MIN,
+  });
+});
+
 module.exports = router;

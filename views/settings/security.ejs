@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NodeMail — Security</title>
+  <link rel="stylesheet" href="/css/style.css?v=<%= v %>">
+  <style>
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-val {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .stat-val.red { color: var(--red); }
+    .stat-val.green { color: var(--green); }
+    .stat-val.amber { color: var(--accent-h); }
+    .stat-label {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .log-table th {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-lt);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      position: sticky;
+      top: 0;
+      background: var(--bg-panel);
+    }
+    .log-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+      vertical-align: middle;
+    }
+    .log-table tr:hover { background: var(--bg-hover); }
+    .log-success { color: var(--green); }
+    .log-fail { color: var(--red); }
+    .reason-badge {
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .reason-badge.ok { background: var(--green-dim); color: #86efac; }
+    .reason-badge.bad { background: var(--red-dim); color: #fca5a5; }
+    .reason-badge.ban { background: #451a03; color: #fbbf24; }
+    .filter-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .filter-tab {
+      padding: 5px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-decoration: none;
+      transition: all 0.1s;
+    }
+    .filter-tab:hover { background: var(--bg-hover); color: var(--text); text-decoration: none; }
+    .filter-tab.active { background: var(--accent-dim); border-color: var(--accent-dim); color: var(--accent-h); }
+    .ip-cell {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+    .config-note {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 2px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      font-size: 12px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .config-note code { font-size: 11px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <%- include('../partials/sidebar') %>
+
+    <div class="main">
+      <div class="toolbar">
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
+        <span class="toolbar-title">Security</span>
+      </div>
+
+      <div class="settings-page">
+
+        <!-- Stats -->
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-val"><%= stats.total24h %></div>
+            <div class="stat-label">Attempts (24h)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val green"><%= stats.success24h %></div>
+            <div class="stat-label">Successful</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val red"><%= stats.failed24h %></div>
+            <div class="stat-label">Failed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val amber"><%= stats.banned24h %></div>
+            <div class="stat-label">Blocked (banned)</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val"><%= stats.uniqueIPs7d %></div>
+            <div class="stat-label">Unique IPs (7d)</div>
+          </div>
+        </div>
+
+        <!-- Ban config -->
+        <div class="settings-card">
+          <h2>IP Ban Policy</h2>
+          <p class="card-desc">
+            <strong><%= maxFailures %></strong> failed attempts within <strong><%= banWindow %></strong> minutes triggers a <strong><%= banDuration %></strong> minute ban.
+            Successful login clears the ban.
+          </p>
+          <div class="config-note">
+            Configure in <code>.env</code>:
+            <code>LOGIN_MAX_FAILURES=<%= maxFailures %></code> &bull;
+            <code>LOGIN_BAN_WINDOW=<%= banWindow %></code> &bull;
+            <code>LOGIN_BAN_DURATION=<%= banDuration %></code>
+          </div>
+        </div>
+
+        <!-- Login logs -->
+        <div class="settings-card" style="padding:0;overflow:hidden;">
+          <div style="padding:16px 16px 0;">
+            <h2>Login Logs</h2>
+            <div class="filter-tabs">
+              <a href="/security?filter=all" class="filter-tab <%= filter === 'all' ? 'active' : '' %>">All (<%= total %>)</a>
+              <a href="/security?filter=success" class="filter-tab <%= filter === 'success' ? 'active' : '' %>">Success</a>
+              <a href="/security?filter=failed" class="filter-tab <%= filter === 'failed' ? 'active' : '' %>">Failed</a>
+              <a href="/security?filter=banned" class="filter-tab <%= filter === 'banned' ? 'active' : '' %>">Banned</a>
+            </div>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="log-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Email</th>
+                  <th>IP</th>
+                  <th>Reason</th>
+                  <th>User Agent</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (logs.length === 0) { %>
+                  <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px;">No logs found</td></tr>
+                <% } %>
+                <% logs.forEach(function(log) { %>
+                  <tr>
+                    <td style="white-space:nowrap;font-size:11px;color:var(--text-dim);"><%= new Date(log.date).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit' }) %></td>
+                    <td>
+                      <% if (log.success) { %>
+                        <span class="reason-badge ok">OK</span>
+                      <% } else { %>
+                        <span class="reason-badge bad">FAIL</span>
+                      <% } %>
+                    </td>
+                    <td style="color:var(--text);"><%= log.email || '—' %></td>
+                    <td class="ip-cell"><%= log.ip %></td>
+                    <td>
+                      <% if (log.reason === 'ip_banned') { %>
+                        <span class="reason-badge ban">BANNED</span>
+                      <% } else if (log.reason === 'bad_password') { %>
+                        <span style="color:var(--text-muted);">wrong password</span>
+                      <% } else if (log.reason === 'user_not_found') { %>
+                        <span style="color:var(--text-muted);">unknown user</span>
+                      <% } else if (log.reason === 'turnstile_fail') { %>
+                        <span style="color:var(--text-muted);">turnstile failed</span>
+                      <% } else if (log.reason === 'ok') { %>
+                        <span style="color:var(--green);">authenticated</span>
+                      <% } else { %>
+                        <span style="color:var(--text-muted);"><%= log.reason %></span>
+                      <% } %>
+                    </td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:var(--text-muted);">
+                      <%= log.userAgent ? log.userAgent.substring(0, 80) : '—' %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+
+          <% if (pages > 1) { %>
+            <div class="pagination" style="border-top:1px solid var(--border);">
+              <% if (page > 1) { %><a href="/security?filter=<%= filter %>&page=<%= page - 1 %>">&laquo;</a><% } %>
+              <% for (let p = Math.max(1, page-3); p <= Math.min(pages, page+3); p++) { %>
+                <% if (p === page) { %><span class="current"><%= p %></span>
+                <% } else { %><a href="/security?filter=<%= filter %>&page=<%= p %>"><%= p %></a><% } %>
+              <% } %>
+              <% if (page < pages) { %><a href="/security?filter=<%= filter %>&page=<%= page + 1 %>">&raquo;</a><% } %>
+            </div>
+          <% } %>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/app.js?v=<%= v %>"></script>
+</body>
+</html>
