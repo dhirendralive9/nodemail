@@ -1,18 +1,19 @@
 #!/usr/bin/env node
-/**
- * sync-maildir.js
- *
- * Exports emails from MongoDB to Maildir format so Dovecot can serve them via IMAP.
- * Run via cron every few minutes: */5 * * * * cd /root/nodemail && node scripts/sync-maildir.js
- *
- * Maildir structure per user:
- *   /home/{username}/Maildir/
- *     new/     — unread messages
- *     cur/     — read messages
- *     .Sent/new/
- *     .Drafts/new/
- *     .Trash/new/
- */
+//
+// sync-maildir.js
+//
+// Exports emails from MongoDB to Maildir format so Dovecot can serve them via IMAP.
+// Run via cron every few minutes:
+//   crontab: */5 * * * * cd /root/nodemail && node scripts/sync-maildir.js
+//
+// Maildir structure per user:
+//   /home/{username}/Maildir/
+//     new/     — unread messages
+//     cur/     — read messages
+//     .Sent/new/
+//     .Drafts/new/
+//     .Trash/new/
+//
 
 require("dotenv").config({ path: require("path").join(__dirname, "..", ".env") });
 const mongoose = require("mongoose");
