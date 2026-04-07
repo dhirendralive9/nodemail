@@ -46,6 +46,7 @@ app.use(session({
 
 // ── Routes ──
 app.use("/", require("./routes/auth"));
+app.use("/", require("./routes/autoconfig"));
 app.use("/", require("./routes/emails"));
 app.use("/", require("./routes/settings"));
 app.use("/webhook", require("./routes/webhook"));
