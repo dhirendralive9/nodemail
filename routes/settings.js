@@ -72,8 +72,12 @@ router.post("/domains/add", async (req, res) => {
 router.post("/domains/:id/delete", async (req, res) => {
   const domainDoc = await Domain.findById(req.params.id);
   if (domainDoc) {
-    // Remove mailboxes on this domain
     await Mailbox.deleteMany({ domain: domainDoc.domain });
+    // Clean up autoconfig Nginx config
+    try {
+      const { removeAutoconfig } = require("../lib/autoProvision");
+      removeAutoconfig(domainDoc.domain);
+    } catch (_) {}
     await domainDoc.deleteOne();
   }
   res.redirect("/domains?success=Domain and its mailboxes removed");
@@ -129,10 +133,24 @@ router.post("/domains/:id/verify", async (req, res) => {
   domainDoc.verified = results.mx && results.spf;
   await domainDoc.save();
 
+  // Auto-provision autoconfig/autodiscover Nginx + SSL if verified
+  let autoconfigResult = null;
+  if (domainDoc.verified) {
+    try {
+      const { provisionAutoconfig } = require("../lib/autoProvision");
+      autoconfigResult = await provisionAutoconfig(domainDoc.domain);
+      console.log(`Autoconfig for ${domainDoc.domain}:`, autoconfigResult.message);
+    } catch (err) {
+      console.error(`Autoconfig error for ${domainDoc.domain}:`, err.message);
+      autoconfigResult = { success: false, message: err.message };
+    }
+  }
+
   const sidebar = await getSidebar(req.session.userId);
   res.render("settings/domain-verify", {
     domain: domainDoc,
     results,
+    autoconfigResult,
     sidebar,
     session: req.session,
     serverHostname,

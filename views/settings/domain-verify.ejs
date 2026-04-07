@@ -84,6 +84,12 @@
             </div>
           <% } %>
 
+          <% if (typeof autoconfigResult !== 'undefined' && autoconfigResult) { %>
+            <div style="margin-top:12px;" class="<%= autoconfigResult.success ? 'success-msg' : 'error-msg' %>">
+              <strong>Autoconfig:</strong> <%= autoconfigResult.message %>
+            </div>
+          <% } %>
+
           <div style="display:flex; gap: 12px; margin-top: 16px;">
             <form method="POST" action="/domains/<%= domain._id %>/verify">
               <button type="submit" class="btn btn-primary"><%= '\u{1F50D}' %> Re-verify</button>
