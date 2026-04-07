@@ -5,6 +5,101 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NodeMail — Mailboxes</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .mailbox-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .mailbox-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .mailbox-addr {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent-h);
+    }
+    .mailbox-sections {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .mailbox-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+    .mailbox-section h4 {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .fwd-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 2px;
+    }
+    .fwd-status.on { background: var(--green-dim); color: #86efac; }
+    .fwd-status.off { background: var(--bg-hover); color: var(--text-muted); }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .toggle-row label {
+      font-size: 12px;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .toggle-row input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+    }
+    .fwd-input {
+      width: 100%;
+      padding: 7px 10px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      outline: none;
+      margin-bottom: 8px;
+    }
+    .fwd-input:focus { border-color: var(--accent); }
+    .fwd-input::placeholder { color: var(--text-muted); }
+    .mailbox-actions {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+    @media (max-width: 768px) {
+      .mailbox-sections { grid-template-columns: 1fr; }
+      .mailbox-header { flex-direction: column; align-items: flex-start; }
+      .mailbox-actions { margin-left: 0; }
+    }
+  </style>
 </head>
 <body>
   <div class="app">
@@ -12,9 +107,11 @@
 
     <div class="main">
       <div class="toolbar">
-        <button class="sidebar-toggle" onclick="toggleSidebar()"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg></button>
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+        </button>
         <span class="toolbar-title">Mailboxes</span>
-        <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Email addresses for sending & receiving</span>
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);margin-left:6px;">Send & receive addresses</span>
       </div>
 
       <div class="settings-page">
@@ -29,11 +126,11 @@
         <!-- Create mailbox -->
         <div class="settings-card">
           <h2>Create Mailbox</h2>
-          <p class="card-desc">Create an email address on one of your verified domains. This address can send and receive email.</p>
+          <p class="card-desc">Create an email address on a verified domain. It can send, receive, and forward mail.</p>
 
           <% if (domains.length === 0) { %>
             <div class="error-msg">
-              No verified domains. <a href="/domains" style="color:#f87171;">Add and verify a domain</a> first.
+              No verified domains. <a href="/domains">Add and verify a domain</a> first.
             </div>
           <% } else { %>
             <form method="POST" action="/mailboxes/add">
@@ -42,7 +139,7 @@
                   <label>Address</label>
                   <input type="text" name="localPart" placeholder="hello" required style="margin-bottom:0;">
                 </div>
-                <div style="padding-bottom:6px; font-size:18px; color:var(--text-muted);">@</div>
+                <div style="padding-bottom:6px; font-family:var(--font-mono); font-size:16px; color:var(--text-muted);">@</div>
                 <div class="form-row" style="margin-bottom:0;">
                   <label>Domain</label>
                   <select name="domain" class="form-select" style="margin-bottom:0;">
@@ -56,103 +153,146 @@
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
                 <div class="form-row" style="margin-bottom:0;">
                   <label>Display Name</label>
-                  <input type="text" name="displayName" placeholder="e.g. Support, Sales, John" style="margin-bottom:0;">
+                  <input type="text" name="displayName" placeholder="e.g. Support, Sales" style="margin-bottom:0;">
                 </div>
                 <div class="form-row" style="margin-bottom:0; display:flex; align-items:center; gap:10px; padding-top:22px;">
-                  <input type="checkbox" name="catchAll" id="catchAll" style="width:16px;height:16px;accent-color:var(--accent);">
-                  <label for="catchAll" style="margin-bottom:0; text-transform:none; letter-spacing:0; font-size:13px; color:var(--text);">
-                    Catch-all (receives all unmatched mail for this domain)
+                  <input type="checkbox" name="catchAll" id="catchAll" style="width:14px;height:14px;accent-color:var(--accent);">
+                  <label for="catchAll" style="margin-bottom:0; text-transform:none; letter-spacing:0; font-size:12px; color:var(--text-dim);">
+                    Catch-all for this domain
                   </label>
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-primary">Create Mailbox</button>
+              <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                Create Mailbox
+              </button>
             </form>
           <% } %>
         </div>
 
         <!-- Mailbox list -->
         <div class="settings-card">
-          <h2>Active Mailboxes</h2>
+          <h2>Active Mailboxes (<%= mailboxes.length %>)</h2>
 
           <% if (mailboxes.length === 0) { %>
             <p class="card-desc">No mailboxes created yet.</p>
           <% } else { %>
-            <table class="settings-table">
-              <thead>
-                <tr>
-                  <th>Email Address</th>
-                  <th>Display Name</th>
-                  <th>Type</th>
-                  <th>Assigned Users</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <% mailboxes.forEach(function(mb) { %>
-                  <tr>
-                    <td><strong><%= mb.address %></strong></td>
-                    <td><%= mb.displayName || '—' %></td>
-                    <td>
-                      <% if (mb.catchAll) { %>
-                        <span class="badge-status" style="background:#1e1b4b;color:#a78bfa;">Catch-all</span>
-                      <% } else { %>
-                        <span style="color:var(--text-muted);">Standard</span>
-                      <% } %>
-                    </td>
-                    <td>
-                      <!-- Assign users form -->
-                      <form method="POST" action="/mailboxes/<%= mb._id %>/assign" class="assign-form">
-                        <div class="checkbox-group">
-                          <% users.forEach(function(u) { %>
-                            <label class="checkbox-label">
-                              <input type="checkbox" name="userIds" value="<%= u._id %>"
-                                <%= (mb.assignedUsers && mb.assignedUsers.some(au => au._id.toString() === u._id.toString())) ? 'checked' : '' %>>
-                              <span><%= u.email %></span>
-                            </label>
-                          <% }); %>
+
+            <% mailboxes.forEach(function(mb) { %>
+              <div class="mailbox-card">
+                <div class="mailbox-header">
+                  <span class="mailbox-addr"><%= mb.address %></span>
+                  <% if (mb.displayName) { %>
+                    <span style="font-size:12px;color:var(--text-dim);"><%= mb.displayName %></span>
+                  <% } %>
+                  <% if (mb.catchAll) { %>
+                    <span class="badge-status" style="background:#1e1b4b;color:#a78bfa;">CATCH-ALL</span>
+                  <% } %>
+                  <% if (mb.active) { %>
+                    <span class="badge-status verified">ACTIVE</span>
+                  <% } else { %>
+                    <span class="badge-status pending">DISABLED</span>
+                  <% } %>
+                  <% if (mb.forwardEnabled) { %>
+                    <span class="fwd-status on">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>
+                      FWD ON
+                    </span>
+                  <% } %>
+
+                  <div class="mailbox-actions">
+                    <form method="POST" action="/mailboxes/<%= mb._id %>/toggle" style="display:inline">
+                      <button type="submit" class="btn btn-sm"><%= mb.active ? 'Disable' : 'Enable' %></button>
+                    </form>
+                    <form method="POST" action="/mailboxes/<%= mb._id %>/delete" style="display:inline">
+                      <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this mailbox?')">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                <div class="mailbox-sections">
+                  <!-- Users section -->
+                  <div class="mailbox-section">
+                    <h4>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px;margin-right:4px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                      Assigned Users
+                    </h4>
+                    <form method="POST" action="/mailboxes/<%= mb._id %>/assign">
+                      <% users.forEach(function(u) { %>
+                        <div class="toggle-row">
+                          <label>
+                            <input type="checkbox" name="userIds" value="<%= u._id %>"
+                              <%= (mb.assignedUsers && mb.assignedUsers.some(au => au._id.toString() === u._id.toString())) ? 'checked' : '' %>>
+                            <span><%= u.email %></span>
+                          </label>
                         </div>
-                        <button type="submit" class="btn btn-sm" style="margin-top:6px;">Save</button>
-                      </form>
-                    </td>
-                    <td>
-                      <% if (mb.active) { %>
-                        <span class="badge-status verified">Active</span>
-                      <% } else { %>
-                        <span class="badge-status pending">Disabled</span>
+                      <% }); %>
+                      <% if (users.length === 0) { %>
+                        <p style="font-size:11px;color:var(--text-muted);">No users created yet.</p>
                       <% } %>
-                    </td>
-                    <td class="action-cell" style="flex-direction:column;align-items:flex-start;">
-                      <form method="POST" action="/mailboxes/<%= mb._id %>/toggle" style="display:inline">
-                        <button type="submit" class="btn btn-sm"><%= mb.active ? 'Disable' : 'Enable' %></button>
-                      </form>
-                      <form method="POST" action="/mailboxes/<%= mb._id %>/delete" style="display:inline">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this mailbox?')">Delete</button>
-                      </form>
-                    </td>
-                  </tr>
-                <% }); %>
-              </tbody>
-            </table>
+                      <button type="submit" class="btn btn-sm" style="margin-top:4px;">Save users</button>
+                    </form>
+                  </div>
+
+                  <!-- Forwarding section -->
+                  <div class="mailbox-section">
+                    <h4>
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="vertical-align:-2px;margin-right:4px;"><polyline points="15 17 20 12 15 7"/><path d="M4 18v-2a4 4 0 0 1 4-4h12"/></svg>
+                      Email Forwarding
+                    </h4>
+                    <form method="POST" action="/mailboxes/<%= mb._id %>/forward">
+                      <div class="toggle-row">
+                        <label>
+                          <input type="checkbox" name="forwardEnabled" id="fwd_<%= mb._id %>"
+                            <%= mb.forwardEnabled ? 'checked' : '' %>
+                            onchange="document.getElementById('fwdPanel_<%= mb._id %>').style.display = this.checked ? 'block' : 'none'">
+                          <span>Enable forwarding</span>
+                        </label>
+                      </div>
+
+                      <div id="fwdPanel_<%= mb._id %>" style="display:<%= mb.forwardEnabled ? 'block' : 'none' %>;">
+                        <label style="font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);display:block;margin-bottom:4px;">
+                          Forward to (comma separated)
+                        </label>
+                        <input type="text" name="forwardTo" class="fwd-input"
+                          placeholder="user@gmail.com, team@company.com"
+                          value="<%= mb.forwardTo ? mb.forwardTo.join(', ') : '' %>">
+
+                        <div class="toggle-row">
+                          <label>
+                            <input type="checkbox" name="forwardKeepCopy" <%= mb.forwardKeepCopy !== false ? 'checked' : '' %>>
+                            <span>Keep a copy in inbox</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <button type="submit" class="btn btn-sm" style="margin-top:4px;">Save forwarding</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
           <% } %>
         </div>
 
-        <!-- Info -->
+        <!-- How it works -->
         <div class="settings-card">
-          <h2>How it works</h2>
-          <div class="card-desc" style="line-height:1.8;">
-            <strong>Inbound:</strong> When an email arrives for an address, NodeMail delivers it to all assigned users' inboxes.
-            If no users are assigned, the admin receives it. Catch-all mailboxes receive any mail sent to the domain that doesn't match another mailbox.<br><br>
-            <strong>Outbound:</strong> When composing an email, users can pick any mailbox they're assigned to in the "From" field.
-            Admin can send from any mailbox.<br><br>
-            <strong>Tip:</strong> Create mailboxes like <code>hello@</code>, <code>support@</code>, <code>sales@</code> and assign team members as needed.
+          <h2>How It Works</h2>
+          <div class="card-desc" style="line-height:1.9;">
+            <strong>Inbound mail</strong> is delivered to assigned users' inboxes. If forwarding is enabled, a copy is also sent to the external addresses via your outbound SMTP provider.<br><br>
+            <strong>Keep a copy</strong> — when checked, the email is stored locally AND forwarded. When unchecked, it's only forwarded (nothing stored in NodeMail).<br><br>
+            <strong>Forwarding uses your outbound SMTP</strong> (<code><%= process.env.SMTP_HOST || 'configured SMTP' %></code>) to send the forwarded copy, so make sure the mailbox address is an authorized sender in your SMTP provider.<br><br>
+            <strong>Catch-all</strong> receives any mail to the domain that doesn't match another mailbox. Forwarding works on catch-all too.
           </div>
         </div>
 
       </div>
     </div>
   </div>
+
   <script src="/js/app.js"></script>
 </body>
 </html>

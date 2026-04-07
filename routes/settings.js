@@ -241,6 +241,23 @@ router.post("/mailboxes/:id/assign", async (req, res) => {
   res.redirect("/mailboxes?success=Users updated");
 });
 
+router.post("/mailboxes/:id/forward", async (req, res) => {
+  const { forwardTo, forwardKeepCopy, forwardEnabled } = req.body;
+  const mb = await Mailbox.findById(req.params.id);
+  if (!mb) return res.redirect("/mailboxes?error=Mailbox not found");
+
+  const addresses = forwardTo
+    ? forwardTo.split(",").map(a => a.trim().toLowerCase()).filter(a => a && a.includes("@"))
+    : [];
+
+  mb.forwardEnabled = forwardEnabled === "on";
+  mb.forwardTo = addresses;
+  mb.forwardKeepCopy = forwardKeepCopy === "on";
+  await mb.save();
+
+  res.redirect(`/mailboxes?success=Forwarding updated for ${mb.address}`);
+});
+
 router.post("/mailboxes/:id/toggle", async (req, res) => {
   const mb = await Mailbox.findById(req.params.id);
   if (mb) {

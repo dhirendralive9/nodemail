@@ -13,6 +13,10 @@ const mailboxSchema = new mongoose.Schema({
   assignedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   // Is this a catch-all for the domain? (receives all unmatched mail)
   catchAll: { type: Boolean, default: false },
+  // ── Forwarding ──
+  forwardEnabled: { type: Boolean, default: false },
+  forwardTo:      [{ type: String, lowercase: true, trim: true }], // external addresses to forward to
+  forwardKeepCopy:{ type: Boolean, default: true }, // keep a copy in the inbox or just forward
   // Active or disabled
   active: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now },
